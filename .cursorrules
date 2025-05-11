@@ -107,3 +107,45 @@ If needed, you can further use the `web_scraper.py` file to scrape the web page 
 - When searching for recent news, use the current year (2025) instead of previous years, or simply use the "recent" keyword to get the latest information
 
 # Scratchpad
+
+## Project: NovaGlide - Shandong University Intelligent Agent
+
+### Mission
+To develop "NovaGlide," an intelligent agent application for Shandong University. This application will leverage RAGflow and large language models to assist students by providing comprehensive information and Q&A capabilities related to postgraduate entrance exams, postgraduate program recommendations, and civil service examinations.
+
+### Constraints
+1.  **Frontend:** Android application developed using Kotlin. UI to be built with Jetpack Compose (preferred) or XML.
+2.  **Backend:** REST API and management functions built with Spring Boot (Java).
+3.  **Q&A Module:** Integration with RAGflow for advanced retrieval-augmented generation.
+4.  **Databases:**
+    *   Backend: MySQL or PostgreSQL for structured data (users, content, logs).
+    *   Android: Room (Jetpack) for local caching and user preferences.
+5.  **Core Technologies (as per PDF):**
+    *   Android: Retrofit, Gson/Moshi, Coil/Glide, Navigation Component.
+    *   Backend: Spring Security, MyBatis/JPA, Swagger, JWT.
+    *   RAGflow Integration: FastAPI (if self-hosting Python service), LLM APIs (DeepSeek, ChatGLM, OpenAI), LlamaIndex/LangChain, FAISS/Weaviate, Embedding Models (BGE, OpenAI).
+6.  **Target Audience:** Students of Shandong University.
+7.  **Development Practices:** Adhere to user-specified lessons and guidelines in `.cursorrules` (e.g., Python venv usage, commit message conventions, debugging output).
+
+### Principles
+1.  **Official & Modern Stack:** Prioritize officially recommended technologies (Kotlin for Android, Spring Boot) and modern approaches (Jetpack Compose).
+2.  **Performance & Efficiency:** Utilize libraries like Retrofit, Coil/Glide, and Room to ensure a responsive user experience.
+3.  **Modularity & Maintainability:** Design with clear separation of concerns (data, domain, presentation/controller, service layers). Employ dependency injection and generate comprehensive API documentation (Swagger).
+4.  **Secure by Design:** Implement robust authentication and authorization using Spring Security and JWT.
+5.  **Intelligent & Relevant Q&A:** Leverage the RAGflow framework to provide accurate and contextually relevant answers.
+6.  **User-Centric:** Focus on creating a seamless and helpful experience for students, including features like local caching for offline access/performance.
+7.  **Iterative Development:** Follow a structured plan, track progress, and reflect on milestones.
+
+### Task: Initial Project Setup
+
+[X] Define and add MCP (Mission, Constraints, Principles) to `.cursorrules` Scratchpad.
+[X] Create the complete Android application directory structure.
+   [X] 创建基础目录结构
+   [X] 创建 Gradle 文件 (build.gradle, settings.gradle, gradle.properties)
+   [X] 创建基础应用文件 (AndroidManifest.xml, Application 类)
+   [X] 创建 UI 界面 (Activity, 资讯页面, 问答页面, 个人中心页面)
+   [X] 创建资源文件 (strings.xml, colors.xml, themes.xml)
+   [X] 添加辅助文件 (README.md, local.properties.example)
+[ ] Create the complete Backend server directory structure.
+[ ] Create the complete RAGflow integration directory structure.
+[ ] Create supporting directories (e.g., `docs`).
