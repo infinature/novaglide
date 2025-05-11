@@ -24,6 +24,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.sdu.novaglide.ui.components.BottomNavBar
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun HomeScreen(
     onNavigateToQna: () -> Unit,
@@ -36,19 +37,11 @@ fun HomeScreen(
         topBar = {
             // 顶部标签栏
             Column {
-                ScrollableTabRow(
+                TabRow(
                     selectedTabIndex = selectedTabIndex,
                     modifier = Modifier.fillMaxWidth(),
-                    edgePadding = 8.dp,
                     containerColor = Color.White,
                     contentColor = Color.Black,
-                    indicator = { tabPositions ->
-                        TabRowDefaults.Indicator(
-                            modifier = Modifier.tabIndicatorOffset(tabPositions[selectedTabIndex]),
-                            height = 2.dp,
-                            color = Color.Black
-                        )
-                    }
                 ) {
                     tabs.forEachIndexed { index, title ->
                         Tab(

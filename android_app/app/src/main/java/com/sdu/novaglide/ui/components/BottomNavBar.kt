@@ -3,12 +3,12 @@ package com.sdu.novaglide.ui.components
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.size
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Chat
 import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.Person
-import androidx.compose.material.icons.outlined.Chat
+import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.outlined.Home
 import androidx.compose.material.icons.outlined.Person
+import androidx.compose.material.icons.outlined.Settings
 import androidx.compose.material3.Icon
 import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationBarItem
@@ -34,8 +34,8 @@ fun BottomNavBar(
         ),
         BottomNavItem(
             title = "聊天",
-            selectedIcon = Icons.Filled.Chat,
-            unselectedIcon = Icons.Outlined.Chat
+            selectedIcon = Icons.Filled.Settings,
+            unselectedIcon = Icons.Outlined.Settings
         ),
         BottomNavItem(
             title = "我的",
