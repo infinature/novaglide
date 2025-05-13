@@ -31,7 +31,8 @@ import com.sdu.novaglide.ui.components.BottomNavBar
 
 @Composable
 fun ProfileScreen(
-    onNavigateBack: () -> Unit
+    onNavigateBack: () -> Unit,
+    onNavigateToUserInfo: () -> Unit = {} // 添加导航到用户信息页面的回调
 ) {
     Scaffold(
         bottomBar = {
@@ -49,11 +50,12 @@ fun ProfileScreen(
                 .padding(paddingValues)
                 .background(Color(0xFFF5F5F5))
         ) {
-            // 用户信息卡片
+            // 用户信息卡片，添加点击事件导航到用户信息页面
             Card(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(16.dp),
+                    .padding(16.dp)
+                    .clickable { onNavigateToUserInfo() }, // 添加点击事件
                 elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
                 colors = CardDefaults.cardColors(containerColor = Color.White)
             ) {
@@ -166,7 +168,7 @@ fun ProfileMenuItem(
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .clickable(onClick = onClick)
+            .clickable { onClick() }  // 修复：使用正确的 lambda 语法
             .padding(16.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
@@ -195,4 +197,4 @@ fun ProfileMenuItem(
             )
         }
     }
-} 
+}
