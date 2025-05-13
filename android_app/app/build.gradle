@@ -5,7 +5,8 @@ plugins {
 
 android {
     namespace = "com.sdu.novaglide"
-    compileSdk = 34 // Or your target SDK
+    compileSdk 35
+    // Or your target SDK
 
     defaultConfig {
         applicationId = "com.sdu.novaglide"
@@ -48,6 +49,7 @@ android {
             excludes += "/META-INF/{AL2.0,LGPL2.1}"
         }
     }
+    buildToolsVersion '34.0.0'
 }
 
 dependencies {
