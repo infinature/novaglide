@@ -107,3 +107,11 @@ If needed, you can further use the `web_scraper.py` file to scrape the web page 
 - When searching for recent news, use the current year (2025) instead of previous years, or simply use the "recent" keyword to get the latest information
 
 # Scratchpad
+[X] 任务：更新 Android 应用中的 RAG API 密钥并改进错误日志记录
+    [X] 定位 RAG API 密钥在 Android 应用中的存储/使用位置。
+    [X] 将 RAG API 密钥更新为 `ragflow-EwNTFmYzU2MmZlZDExZjA5YmM4MjIxN2`。
+    [X] 找到导致 "发送消息时出错: connection closed" 消息的代码。
+    [X] 在导致失败的网络请求周围添加更详细的错误日志。
+[X] 任务：更新 RAGFlow API 密钥和服务器地址
+    [X] 将 RAG API 密钥更新为 `ragflow-RhZjEzMjlhMmZlZTExZjA4YmUyNDIwMT`。
+    [X] 将 RAG API 服务器地址更新为 `https://demo.ragflow.io`。
