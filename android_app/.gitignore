@@ -1,0 +1,38 @@
+# Android Studio / IntelliJ
+*.iml
+.idea/
+.gradle/
+build/
+
+# Local configuration files (sdk path, sensitive data)
+local.properties
+
+# Keystore files (NEVER commit these)
+*.jks
+*.keystore
+
+# APK files
+*.apk
+*.aab
+
+# Android Profiler captures
+captures/
+
+# Lint results
+lint/
+
+# Log files
+*.log
+
+# Mac OSX metadata
+.DS_Store
+
+# Flutter specific (if ever mixed, good to have)
+.flutter-plugins
+.flutter-plugins-dependencies
+.packages
+.pub-cache/
+.dart_tool/
+
+# Dependencies (node_modules for JS parts if any)
+node_modules/ 
