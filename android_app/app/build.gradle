@@ -38,6 +38,7 @@ android {
     }
     buildFeatures {
         compose = true
+        buildConfig = true
         // viewBinding = true // Enable if using XML layouts with ViewBinding
     }
     composeOptions {
@@ -74,7 +75,11 @@ dependencies {
     // Retrofit & Gson/Moshi (Choose one for JSON parsing)
     implementation(libs.retrofit)
     implementation(libs.converter.gson) // or libs.converter.moshi
-    // implementation(libs.logging.interceptor) // For logging network requests
+    implementation("com.squareup.okhttp3:logging-interceptor:4.10.0") // 添加OkHttp日志拦截器
+
+    // DataStore
+    implementation("androidx.datastore:datastore-preferences:1.0.0")
+    implementation("androidx.datastore:datastore-preferences-core:1.0.0")
 
     // Room
     implementation(libs.androidx.room.runtime)

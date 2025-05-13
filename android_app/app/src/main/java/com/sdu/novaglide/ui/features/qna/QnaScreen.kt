@@ -1,14 +1,15 @@
 package com.sdu.novaglide.ui.features.qna
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.ArrowBack
-import androidx.compose.material.icons.filled.Send
+import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -18,28 +19,31 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun QnaScreen(
-    onNavigateBack: () -> Unit
+    onNavigateBack: () -> Unit,
+    onNavigateToSettings: () -> Unit,
+    viewModel: QnaViewModel
 ) {
     var userInput by remember { mutableStateOf("") }
-    var chatMessages by remember { 
-        mutableStateOf(
-            listOf(
-                ChatMessage(
-                    "用户",
-                    "考研有哪些注意事项?",
-                    isFromUser = true
-                ),
-                ChatMessage(
-                    "秦媛",
-                    "对于考研考生，以下是一些注意事项：\n\n1. 合理规划时间，制定复习计划...",
-                    isFromUser = false
-                )
-            )
-        ) 
+    val messages by viewModel.messages.collectAsState()
+    val isLoading by viewModel.isLoading.collectAsState()
+    val isApiConfigured by viewModel.isApiConfigured.collectAsState()
+    val errorMessage by viewModel.errorMessage.collectAsState()
+    
+    val listState = rememberLazyListState()
+    val coroutineScope = rememberCoroutineScope()
+    
+    // 当新消息添加时，滚动到底部
+    LaunchedEffect(messages.size) {
+        if (messages.isNotEmpty()) {
+            coroutineScope.launch {
+                listState.animateScrollToItem(messages.size - 1)
+            }
+        }
     }
     
     Scaffold(
@@ -57,6 +61,11 @@ fun QnaScreen(
                         Icon(Icons.Filled.ArrowBack, contentDescription = "返回")
                     }
                 },
+                actions = {
+                    IconButton(onClick = onNavigateToSettings) {
+                        Icon(Icons.Filled.Settings, contentDescription = "设置")
+                    }
+                },
                 colors = TopAppBarDefaults.topAppBarColors(
                     containerColor = Color.White,
                     titleContentColor = Color.Black,
@@ -70,16 +79,85 @@ fun QnaScreen(
                 .fillMaxSize()
                 .padding(paddingValues)
         ) {
+            // API未配置提示
+            if (!isApiConfigured) {
+                Card(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(16.dp),
+                    colors = CardDefaults.cardColors(
+                        containerColor = MaterialTheme.colorScheme.errorContainer
+                    )
+                ) {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(16.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Icon(
+                            Icons.Filled.Warning,
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.error
+                        )
+                        Spacer(modifier = Modifier.width(16.dp))
+                        Column {
+                            Text(
+                                text = "API未配置",
+                                style = MaterialTheme.typography.titleMedium,
+                                color = MaterialTheme.colorScheme.error
+                            )
+                            Spacer(modifier = Modifier.height(4.dp))
+                            Text(
+                                text = "请先在设置中配置DeepSeek的API密钥",
+                                style = MaterialTheme.typography.bodyMedium
+                            )
+                        }
+                    }
+                }
+            }
+            
+            // 错误消息提示
+            errorMessage?.let { error ->
+                Card(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(16.dp),
+                    colors = CardDefaults.cardColors(
+                        containerColor = MaterialTheme.colorScheme.errorContainer
+                    )
+                ) {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(16.dp)
+                            .clickable { viewModel.clearError() },
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Icon(
+                            Icons.Filled.Error,
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.error
+                        )
+                        Spacer(modifier = Modifier.width(16.dp))
+                        Text(
+                            text = error,
+                            style = MaterialTheme.typography.bodyMedium
+                        )
+                    }
+                }
+            }
+            
             // 聊天消息列表
             LazyColumn(
                 modifier = Modifier
                     .fillMaxWidth()
                     .weight(1f)
                     .padding(horizontal = 16.dp),
-                reverseLayout = false
+                state = listState
             ) {
-                items(chatMessages) { message ->
-                    MessageItem(message = message)
+                items(messages) { message ->
+                    DomainMessageItem(message = message)
                     Spacer(modifier = Modifier.height(16.dp))
                 }
             }
@@ -105,32 +183,30 @@ fun QnaScreen(
                         focusedBorderColor = Color.LightGray
                     ),
                     trailingIcon = {
-                        IconButton(
-                            onClick = {
-                                if (userInput.isNotEmpty()) {
-                                    // 添加用户消息
-                                    chatMessages = chatMessages + ChatMessage(
-                                        "用户",
-                                        userInput,
-                                        isFromUser = true
-                                    )
-                                    // 清空输入框
-                                    userInput = ""
-                                    
-                                    // 模拟AI回复
-                                    chatMessages = chatMessages + ChatMessage(
-                                        "秦媛",
-                                        "我正在思考您的问题，稍后会给您回复...",
-                                        isFromUser = false
-                                    )
-                                }
-                            }
-                        ) {
-                            Icon(
-                                Icons.Filled.Send,
-                                contentDescription = "发送",
-                                tint = MaterialTheme.colorScheme.primary
+                        if (isLoading) {
+                            CircularProgressIndicator(
+                                modifier = Modifier.size(24.dp),
+                                strokeWidth = 2.dp
                             )
+                        } else {
+                            IconButton(
+                                onClick = {
+                                    if (userInput.isNotEmpty() && !isLoading) {
+                                        viewModel.sendMessageToDeepSeek(userInput)
+                                        userInput = ""
+                                    }
+                                },
+                                enabled = userInput.isNotEmpty() && !isLoading
+                            ) {
+                                Icon(
+                                    Icons.Filled.Send,
+                                    contentDescription = "发送",
+                                    tint = if (userInput.isNotEmpty() && !isLoading)
+                                        MaterialTheme.colorScheme.primary
+                                    else
+                                        Color.Gray
+                                )
+                            }
                         }
                     }
                 )
@@ -140,14 +216,15 @@ fun QnaScreen(
 }
 
 @Composable
-fun MessageItem(message: ChatMessage) {
+fun DomainMessageItem(message: com.sdu.novaglide.domain.model.ChatMessage) {
     Column(
         modifier = Modifier.fillMaxWidth(),
-        horizontalAlignment = if (message.isFromUser) Alignment.End else Alignment.Start
+        horizontalAlignment = if (message.role == com.sdu.novaglide.domain.model.MessageRole.USER) 
+            Alignment.End else Alignment.Start
     ) {
-        if (!message.isFromUser) {
+        if (message.role != com.sdu.novaglide.domain.model.MessageRole.USER) {
             Text(
-                text = message.sender,
+                text = if (message.role == com.sdu.novaglide.domain.model.MessageRole.ASSISTANT) "秦媛" else "系统",
                 fontSize = 12.sp,
                 color = Color.Gray,
                 modifier = Modifier.padding(bottom = 4.dp)
@@ -160,26 +237,85 @@ fun MessageItem(message: ChatMessage) {
                     RoundedCornerShape(
                         topStart = 16.dp,
                         topEnd = 16.dp,
-                        bottomStart = if (message.isFromUser) 16.dp else 4.dp,
-                        bottomEnd = if (message.isFromUser) 4.dp else 16.dp
+                        bottomStart = if (message.role == com.sdu.novaglide.domain.model.MessageRole.USER) 16.dp else 4.dp,
+                        bottomEnd = if (message.role == com.sdu.novaglide.domain.model.MessageRole.USER) 4.dp else 16.dp
                     )
                 )
                 .background(
-                    if (message.isFromUser) Color(0xFF2196F3) else Color(0xFFE0E0E0)
+                    if (message.role == com.sdu.novaglide.domain.model.MessageRole.USER) 
+                        Color(0xFF2196F3) 
+                    else 
+                        Color(0xFFE0E0E0)
                 )
                 .padding(12.dp)
         ) {
-            Text(
-                text = message.content,
-                color = if (message.isFromUser) Color.White else Color.Black,
-                fontSize = 14.sp
-            )
+            if (message.isLoading) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Text(
+                        text = "思考中",
+                        color = if (message.role == com.sdu.novaglide.domain.model.MessageRole.USER) 
+                            Color.White else Color.Black,
+                        fontSize = 14.sp
+                    )
+                    Spacer(modifier = Modifier.width(8.dp))
+                    CircularProgressIndicator(
+                        modifier = Modifier.size(16.dp),
+                        color = if (message.role == com.sdu.novaglide.domain.model.MessageRole.USER)
+                            Color.White else Color(0xFF2196F3),
+                        strokeWidth = 2.dp
+                    )
+                }
+            } else {
+                Text(
+                    text = message.content,
+                    color = if (message.role == com.sdu.novaglide.domain.model.MessageRole.USER) 
+                        Color.White else Color.Black,
+                    fontSize = 14.sp
+                )
+            }
+        }
+        
+        // 显示文档引用
+        if (message.references.isNotEmpty()) {
+            Spacer(modifier = Modifier.height(8.dp))
+            Card(
+                modifier = Modifier
+                    .align(Alignment.Start)
+                    .padding(start = 4.dp, end = 4.dp),
+                colors = CardDefaults.cardColors(
+                    containerColor = MaterialTheme.colorScheme.secondaryContainer
+                ),
+                shape = RoundedCornerShape(8.dp)
+            ) {
+                Column(modifier = Modifier.padding(8.dp)) {
+                    Text(
+                        text = "文档引用",
+                        style = MaterialTheme.typography.labelMedium,
+                        color = MaterialTheme.colorScheme.onSecondaryContainer
+                    )
+                    
+                    message.references.forEach { reference ->
+                        Spacer(modifier = Modifier.height(4.dp))
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Icon(
+                                Icons.Filled.Description,
+                                contentDescription = null,
+                                modifier = Modifier.size(16.dp),
+                                tint = MaterialTheme.colorScheme.onSecondaryContainer.copy(alpha = 0.6f)
+                            )
+                            Spacer(modifier = Modifier.width(4.dp))
+                            Text(
+                                text = "${reference.documentName}${if (reference.pageNumber != null) " (第${reference.pageNumber}页)" else ""}",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSecondaryContainer.copy(alpha = 0.8f)
+                            )
+                        }
+                    }
+                }
+            }
         }
     }
-}
-
-data class ChatMessage(
-    val sender: String,
-    val content: String,
-    val isFromUser: Boolean
-) 
+} 
