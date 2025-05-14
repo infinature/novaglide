@@ -168,7 +168,7 @@ fun ProfileMenuItem(
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .clickable { onClick() }  // 修复：使用正确的 lambda 语法
+            .clickable { onClick() }
             .padding(16.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {

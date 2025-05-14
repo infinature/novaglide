@@ -1,5 +1,6 @@
 package com.sdu.novaglide.ui.features.profile
 
+import android.util.Log
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
@@ -13,22 +14,57 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
-// LocalContext的导入可能不再需要，除非有其他用途
-// import androidx.compose.ui.platform.LocalContext 
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
-import com.sdu.novaglide.domain.model.UserInfo // 导入正确的UserInfo模型
+import com.sdu.novaglide.NovaGlideApplication
+import com.sdu.novaglide.domain.model.UserInfo
 import java.text.SimpleDateFormat
 import java.util.*
+
+private const val TAG = "UserInfoScreen"
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun UserInfoScreen(
-    onNavigateBack: () -> Unit,
-    viewModel: UserInfoViewModel = viewModel(factory = UserInfoViewModel.Factory())
+    onNavigateBack: () -> Unit
 ) {
+    val TAG = "UserInfoScreen"
+    
+    // 获取应用上下文以访问UserDao
+    val context = LocalContext.current
+    val application = context.applicationContext as NovaGlideApplication
+    
+    // 在使用userDao前检查数据库是否初始化
+    val userDao = try {
+        application.userDao
+    } catch (e: Exception) {
+        Log.e(TAG, "获取UserDao失败: ${e.message}", e)
+        null
+    }
+    
+    // 检查DAO是否可用
+    if (userDao == null) {
+        Box(
+            modifier = Modifier.fillMaxSize(),
+            contentAlignment = Alignment.Center
+        ) {
+            Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                Text("数据库初始化失败", color = Color.Red)
+                Spacer(modifier = Modifier.height(16.dp))
+                Button(onClick = onNavigateBack) {
+                    Text("返回")
+                }
+            }
+        }
+        return
+    }
+    
+    // 创建ViewModel
+    val viewModel: UserInfoViewModel = viewModel(factory = UserInfoViewModel.Factory(userDao))
+    
     val userInfoState by viewModel.userInfoState.collectAsState()
     val dateFormat = remember { SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()) }
 
@@ -66,23 +102,24 @@ fun UserInfoScreen(
                 .padding(paddingValues)
                 .background(Color(0xFFF5F5F5))
         ) {
-            when (val state = userInfoState) { // 使用 'state' 变量以避免重复类型转换
+            when (val state = userInfoState) {
                 is UserInfoState.Loading -> {
-                    // 加载中状态
                     CircularProgressIndicator(
                         modifier = Modifier.align(Alignment.Center)
                     )
                 }
                 is UserInfoState.Error -> {
-                    // 错误状态
                     Column(
-                        modifier = Modifier.align(Alignment.Center),
+                        modifier = Modifier
+                            .align(Alignment.Center)
+                            .padding(16.dp),
                         horizontalAlignment = Alignment.CenterHorizontally
                     ) {
                         Text(
-                            text = state.message, // 使用 state.message
+                            text = "加载失败: ${state.message}",
                             color = Color.Red
                         )
+                        Spacer(modifier = Modifier.height(16.dp))
                         Button(
                             onClick = { viewModel.loadCurrentUserInfo() },
                             modifier = Modifier.padding(top = 16.dp)
@@ -92,9 +129,7 @@ fun UserInfoScreen(
                     }
                 }
                 is UserInfoState.Success -> {
-                    // 成功状态 - 显示用户信息
-                    // val userData = state.userInfo // userData 类型现在是 com.sdu.novaglide.domain.model.UserInfo
-                    UserInfoContent(userData = state.userInfo, dateFormat = dateFormat) // 直接传递
+                    UserInfoContent(userData = state.userInfo, dateFormat = dateFormat)
                 }
             }
         }
@@ -102,7 +137,7 @@ fun UserInfoScreen(
 }
 
 @Composable
-fun UserInfoContent(userData: com.sdu.novaglide.domain.model.UserInfo, dateFormat: SimpleDateFormat) { // 确保类型为导入的UserInfo
+fun UserInfoContent(userData: UserInfo, dateFormat: SimpleDateFormat) {
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -116,7 +151,7 @@ fun UserInfoContent(userData: com.sdu.novaglide.domain.model.UserInfo, dateForma
                 .padding(bottom = 16.dp),
             elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
             colors = CardDefaults.cardColors(containerColor = Color.White)
-        ) {
+        ) { // Card的content lambda开始
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -169,7 +204,7 @@ fun UserInfoContent(userData: com.sdu.novaglide.domain.model.UserInfo, dateForma
                     modifier = Modifier.padding(8.dp)
                 )
             }
-        }
+        } // Card的content lambda结束
         
         // 详细信息卡片
         Card(
@@ -178,7 +213,7 @@ fun UserInfoContent(userData: com.sdu.novaglide.domain.model.UserInfo, dateForma
                 .padding(bottom = 16.dp),
             elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
             colors = CardDefaults.cardColors(containerColor = Color.White)
-        ) {
+        ) { // Card的content lambda开始
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -198,14 +233,14 @@ fun UserInfoContent(userData: com.sdu.novaglide.domain.model.UserInfo, dateForma
                 
                 InfoItem("最近登录", dateFormat.format(userData.lastLoginDate))
             }
-        }
+        } // Card的content lambda结束
         
         // 教育信息卡片
         Card(
             modifier = Modifier.fillMaxWidth(),
             elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
             colors = CardDefaults.cardColors(containerColor = Color.White)
-        ) {
+        ) { // Card的content lambda开始
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -226,7 +261,7 @@ fun UserInfoContent(userData: com.sdu.novaglide.domain.model.UserInfo, dateForma
                 
                 InfoItem("毕业年份", userData.graduationYear?.toString() ?: "未设置")
             }
-        }
+        } // Card的content lambda结束
     }
 }
 
