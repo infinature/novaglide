@@ -8,12 +8,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
-import androidx.navigation.compose.NavHost
-import androidx.navigation.compose.composable
-import androidx.navigation.compose.rememberNavController
-import com.sdu.novaglide.ui.features.home.HomeScreen
-import com.sdu.novaglide.ui.features.qna.QnaScreen
-import com.sdu.novaglide.ui.features.profile.ProfileScreen
+import com.sdu.novaglide.ui.navigation.AppNavigation
 import com.sdu.novaglide.ui.theme.NovaGlideTheme
 
 class MainActivity : ComponentActivity() {
@@ -25,33 +20,9 @@ class MainActivity : ComponentActivity() {
                     modifier = Modifier.fillMaxSize(),
                     color = MaterialTheme.colorScheme.background
                 ) {
-                    NovaGlideApp()
+                    AppNavigation()
                 }
             }
         }
     }
 }
-
-@Composable
-fun NovaGlideApp() {
-    val navController = rememberNavController()
-    
-    NavHost(navController = navController, startDestination = "home") {
-        composable("home") {
-            HomeScreen(
-                onNavigateToQna = { navController.navigate("qna") },
-                onNavigateToProfile = { navController.navigate("profile") }
-            )
-        }
-        composable("qna") {
-            QnaScreen(
-                onNavigateBack = { navController.popBackStack() }
-            )
-        }
-        composable("profile") {
-            ProfileScreen(
-                onNavigateBack = { navController.popBackStack() }
-            )
-        }
-    }
-} 

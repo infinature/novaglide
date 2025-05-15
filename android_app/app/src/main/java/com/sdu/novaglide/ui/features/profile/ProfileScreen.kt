@@ -1,17 +1,20 @@
 package com.sdu.novaglide.ui.features.profile
 
-import androidx.compose.foundation.Image
+
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.ArrowBack
-import androidx.compose.material.icons.filled.ChevronRight
+
+import androidx.compose.material.icons.filled.ArrowForward
 import androidx.compose.material.icons.filled.Favorite
-import androidx.compose.material.icons.filled.History
 import androidx.compose.material.icons.filled.Settings
-import androidx.compose.material.icons.filled.Logout
+import androidx.compose.material.icons.filled.ExitToApp
+import androidx.compose.material.icons.filled.History
+
+import androidx.compose.material.icons.filled.History
+
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
@@ -19,17 +22,17 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
-import androidx.compose.ui.layout.ContentScale
-import androidx.compose.ui.res.painterResource
+
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.sdu.novaglide.R
+import androidx.compose.runtime.*
 import com.sdu.novaglide.ui.components.BottomNavBar
 
 @Composable
 fun ProfileScreen(
-    onNavigateBack: () -> Unit
+    onNavigateBack: () -> Unit,
+    onNavigateToUserInfo: () -> Unit = {} // 添加导航到用户信息页面的回调
 ) {
     Scaffold(
         bottomBar = {
@@ -47,11 +50,12 @@ fun ProfileScreen(
                 .padding(paddingValues)
                 .background(Color(0xFFF5F5F5))
         ) {
-            // 用户信息卡片
+            // 用户信息卡片，添加点击事件导航到用户信息页面
             Card(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(16.dp),
+                    .padding(16.dp)
+                    .clickable { onNavigateToUserInfo() }, // 添加点击事件
                 elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
                 colors = CardDefaults.cardColors(containerColor = Color.White)
             ) {
@@ -110,7 +114,7 @@ fun ProfileScreen(
                     modifier = Modifier.fillMaxWidth()
                 ) {
                     ProfileMenuItem(
-                        icon = Icons.Default.Favorite,
+                        icon = Icons.Filled.Favorite,
                         title = "我的收藏",
                         onClick = { /* 导航到收藏页面 */ }
                     )
@@ -118,7 +122,7 @@ fun ProfileScreen(
                     Divider(modifier = Modifier.padding(start = 56.dp, end = 16.dp))
                     
                     ProfileMenuItem(
-                        icon = Icons.Default.History,
+                        icon = Icons.Filled.History,
                         title = "浏览历史",
                         onClick = { /* 导航到浏览历史页面 */ }
                     )
@@ -126,7 +130,7 @@ fun ProfileScreen(
                     Divider(modifier = Modifier.padding(start = 56.dp, end = 16.dp))
                     
                     ProfileMenuItem(
-                        icon = Icons.Default.Settings,
+                        icon = Icons.Filled.Settings,
                         title = "偏好设置",
                         onClick = { /* 导航到设置页面 */ }
                     )
@@ -142,7 +146,7 @@ fun ProfileScreen(
                 colors = CardDefaults.cardColors(containerColor = Color.White)
             ) {
                 ProfileMenuItem(
-                    icon = Icons.Default.Logout,
+                    icon = Icons.Filled.ExitToApp,
                     title = "退出登录",
                     onClick = { /* 执行退出登录操作 */ },
                     showArrow = false,
@@ -164,7 +168,7 @@ fun ProfileMenuItem(
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .clickable(onClick = onClick)
+            .clickable { onClick() }
             .padding(16.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
@@ -186,11 +190,11 @@ fun ProfileMenuItem(
         
         if (showArrow) {
             Icon(
-                imageVector = Icons.Default.ChevronRight,
+                imageVector = Icons.Filled.ArrowForward,
                 contentDescription = "更多",
                 tint = Color.Gray,
                 modifier = Modifier.size(20.dp)
             )
         }
     }
-} 
+}

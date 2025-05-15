@@ -1,5 +1,5 @@
 [versions]
-agp = "8.1.0"
+agp = "8.2.0"
 kotlin = "1.9.0"
 core-ktx = "1.10.1"
 junit = "4.13.2"
@@ -15,6 +15,10 @@ coil = "2.4.0"
 hilt = "2.47"
 navigation = "2.7.0"
 material = "1.9.0"
+# 更新 KSP 版本以匹配 Kotlin 1.9.0
+ksp = "1.9.0-1.0.13"
+# 确保 Compose 编译器与 Kotlin 1.9.0 兼容
+compose-compiler = "1.5.0"
 
 [libraries]
 androidx-core-ktx = { group = "androidx.core", name = "core-ktx", version.ref = "core-ktx" }
@@ -35,8 +39,8 @@ androidx-navigation-compose = { group = "androidx.navigation", name = "navigatio
 
 # Room
 androidx-room-runtime = { group = "androidx.room", name = "room-runtime", version.ref = "room" }
-androidx-room-compiler = { group = "androidx.room", name = "room-compiler", version.ref = "room" }
 androidx-room-ktx = { group = "androidx.room", name = "room-ktx", version.ref = "room" }
+androidx-room-compiler = { group = "androidx.room", name = "room-compiler", version.ref = "room" }
 
 # Retrofit & OkHttp
 retrofit = { group = "com.squareup.retrofit2", name = "retrofit", version.ref = "retrofit" }
@@ -61,6 +65,7 @@ android-library = { id = "com.android.library", version.ref = "agp" }
 jetbrains-kotlin-android = { id = "org.jetbrains.kotlin.android", version.ref = "kotlin" }
 hilt = { id = "com.google.dagger.hilt.android", version.ref = "hilt" }
 kapt = { id = "org.jetbrains.kotlin.kapt", version.ref = "kotlin" }
-ksp = { id = "com.google.devtools.ksp", version = "1.9.0-1.0.13" }
+ksp = { id = "com.google.devtools.ksp", version.ref = "ksp" }
+google-ksp = { id = "com.google.devtools.ksp", version.ref = "ksp" }
 
-[bundles] 
+[bundles]
