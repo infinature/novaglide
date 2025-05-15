@@ -68,6 +68,9 @@ dependencies {
     // Navigation Compose
     implementation(libs.androidx.navigation.compose)
 
+    // SwipeRefresh for pull-to-refresh functionality
+    implementation("com.google.accompanist:accompanist-swiperefresh:0.32.0")
+
     // Retrofit & Gson/Moshi (Choose one for JSON parsing)
     implementation(libs.retrofit)
     implementation(libs.converter.gson) // or libs.converter.moshi
