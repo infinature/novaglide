@@ -38,8 +38,6 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
-import androidx.compose.ui.Modifier
-import androidx.datastore.core.DataStore
 import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.core.booleanPreferencesKey
 import androidx.datastore.preferences.core.edit
@@ -208,69 +206,6 @@ class MainActivity : ComponentActivity() {
 }
 
 @Composable
-fun NovaGlideApp() {
-    val navController = rememberNavController()
-    
-    // 创建模拟仓库和用例
-    val newsRepository = remember { FakeNewsRepositoryImpl() }
-    val getNewsByCategoryUseCase = remember { GetNewsByCategoryUseCase(newsRepository) }
-    val searchNewsUseCase = remember { SearchNewsUseCase(newsRepository) }
-    
-    // 创建 ViewModel 工厂
-    val viewModelFactory = remember {
-        object : ViewModelProvider.Factory {
-            override fun <T : ViewModel> create(modelClass: Class<T>): T {
-                if (modelClass.isAssignableFrom(HomeViewModel::class.java)) {
-                    return HomeViewModel(getNewsByCategoryUseCase, searchNewsUseCase) as T
-                }
-                throw IllegalArgumentException("Unknown ViewModel class")
-            }
-        }
-    }
-    
-    NavHost(navController = navController, startDestination = "home") {
-        composable("home") {
-            val homeViewModel: HomeViewModel = viewModel(factory = viewModelFactory)
-            
-            HomeScreen(
-                viewModel = homeViewModel,
-                onNavigateToQna = { navController.navigate("qna") },
-                onNavigateToProfile = { navController.navigate("profile") },
-                onNavigateToNewsDetail = { newsId -> 
-                    navController.navigate("news_detail/$newsId")
-                }
-            )
-        }
-        
-        composable(
-            route = "news_detail/{newsId}",
-            arguments = listOf(navArgument("newsId") { type = NavType.StringType })
-        ) { backStackEntry ->
-            val newsId = backStackEntry.arguments?.getString("newsId") ?: ""
-            
-            // 从 ViewModel 获取新闻列表，并查找对应 ID 的新闻
-            val homeViewModel: HomeViewModel = viewModel(factory = viewModelFactory)
-            val news = homeViewModel.state.value.news.find { it.id == newsId }
-            
-            NewsDetailScreen(
-                news = news,
-                onNavigateBack = { navController.popBackStack() }
-            )
-        }
-        
-        composable("qna") {
-            QnaScreen(
-                onNavigateBack = { navController.popBackStack() }
-            )
-        }
-        
-        composable("profile") {
-            ProfileScreen(
-                onNavigateBack = { navController.popBackStack() }
-            )
-        }
-    }
-}
 fun AppStartup(
     initSuccess: Boolean,
     errorMessage: String?,
@@ -299,7 +234,7 @@ fun NovaGlideApp(
     }
     
     AppNavigation(
-        startDestination = AppRoute.HOME,
+        startDestination = AppRoute.NEWS_LIST,
         chatRepository = chatRepository,
         apiKeyStore = apiKeyStore
     )

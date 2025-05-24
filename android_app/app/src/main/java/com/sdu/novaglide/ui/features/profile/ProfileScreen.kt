@@ -13,8 +13,6 @@ import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.ExitToApp
 import androidx.compose.material.icons.filled.History
 
-import androidx.compose.material.icons.filled.History
-
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
@@ -31,14 +29,15 @@ import com.sdu.novaglide.ui.components.BottomNavBar
 
 @Composable
 fun ProfileScreen(
-    onNavigateBack: () -> Unit
+    onNavigateToNewsList: () -> Unit,
+    onNavigateToQna: () -> Unit
 ) {
     Scaffold(
         bottomBar = {
             BottomNavBar(
                 selectedIndex = 2, // 个人页面是第三个选项卡
-                onHomeClick = { onNavigateBack() },
-                onChatClick = { /* 导航到聊天页面 */ },
+                onHomeClick = { onNavigateToNewsList() },
+                onChatClick = { onNavigateToQna() },
                 onProfileClick = { /* 当前页面，无需操作 */ }
             )
         }
