@@ -1,6 +1,5 @@
 package com.sdu.novaglide.data.remote.api
 
-import com.sdu.novaglide.data.remote.dto.ragflow.RagFlowChatRequest
 import com.sdu.novaglide.data.remote.dto.ragflow.RagFlowChatResponse
 import okhttp3.ResponseBody
 import retrofit2.Response
@@ -9,6 +8,7 @@ import retrofit2.http.GET
 import retrofit2.http.Header
 import retrofit2.http.POST
 import retrofit2.http.Path
+import retrofit2.http.Query
 import retrofit2.http.Streaming
 
 /**
@@ -16,60 +16,104 @@ import retrofit2.http.Streaming
  */
 interface RagFlowApiService {
     /**
+     * 直接与指定的RAGFlow助手对话（使用固定的助手ID和会话ID）
+     * @param bearerToken RAGFlow API授权令牌（Bearer token）
+     * @param question 问题内容
+     * @param stream 是否启用流式响应
+     * @return 聊天响应
+     */
+    @POST("api/v1/chats/8ecce028389e11f092625aaa5731e5df/completions")
+    suspend fun chatWithSpecificAssistant(
+        @Header("Authorization") bearerToken: String,
+        @Body request: Map<String, Any>
+    ): RagFlowChatResponse
+    /**
      * 获取所有助手列表
-     * @param apiKey RAGFlow API密钥
+     * @param bearerToken RAGFlow API授权令牌（Bearer token）
+     * @param page 页码，默认1
+     * @param pageSize 每页数量，默认100
+     * @param orderBy 排序字段，默认create_time
+     * @param desc 是否降序，默认true
+     * @param name 按名称过滤
      * @return 助手列表响应
      */
-    @GET("api/v1/assistants")
-    suspend fun getAssistants(
-        @Header("X-API-KEY") apiKey: String
+    @GET("api/v1/chats")
+    suspend fun listChatAssistants(
+        @Header("Authorization") bearerToken: String,
+        @Query("page") page: Int = 1,
+        @Query("page_size") pageSize: Int = 100,
+        @Query("orderby") orderBy: String = "create_time",
+        @Query("desc") desc: Boolean = true,
+        @Query("name") name: String? = null
     ): Response<Map<String, Any>>
 
     /**
-     * 聊天请求
-     * @param apiKey RAGFlow API密钥
-     * @param request 聊天请求
+     * 创建与助手的会话
+     * @param bearerToken RAGFlow API授权令牌（Bearer token）
+     * @param chatId 助手ID
+     * @param sessionName 会话名称
+     * @return 会话创建响应
+     */
+    @POST("api/v1/chats/{chat_id}/sessions")
+    suspend fun createChatSession(
+        @Header("Authorization") bearerToken: String,
+        @Path("chat_id") chatId: String,
+        @Body request: Map<String, String>
+    ): Response<Map<String, Any>>
+
+    /**
+     * 与助手对话
+     * @param bearerToken RAGFlow API授权令牌（Bearer token）
+     * @param chatId 助手ID
+     * @param question 问题
+     * @param sessionId 会话ID（可选）
+     * @param stream 是否启用流式响应
      * @return 聊天响应
      */
-    @POST("api/v1/chat")
-    suspend fun chat(
-        @Header("X-API-KEY") apiKey: String,
-        @Body request: RagFlowChatRequest
+    @POST("api/v1/chats/{chat_id}/completions")
+    suspend fun chatWithAssistant(
+        @Header("Authorization") bearerToken: String,
+        @Path("chat_id") chatId: String,
+        @Body request: Map<String, Any>
     ): RagFlowChatResponse
 
     /**
-     * 流式聊天请求
+     * 流式对话
      * 注意：stream字段需要设置为true
-     * @param apiKey RAGFlow API密钥
-     * @param request 聊天请求（需要设置stream=true）
+     * @param bearerToken RAGFlow API授权令牌（Bearer token）
+     * @param chatId 助手ID
+     * @param question 问题
+     * @param sessionId 会话ID（可选）
+     * @param stream 是否启用流式响应
      * @return 流式响应体
      */
     @Streaming
-    @POST("api/v1/chat")
-    suspend fun streamChat(
-        @Header("X-API-KEY") apiKey: String,
-        @Body request: RagFlowChatRequest
+    @POST("api/v1/chats/{chat_id}/completions")
+    suspend fun streamChatWithAssistant(
+        @Header("Authorization") bearerToken: String,
+        @Path("chat_id") chatId: String,
+        @Body request: Map<String, @JvmSuppressWildcards Any>
     ): Response<ResponseBody>
-
-    /**
-     * 获取对话历史
-     * @param apiKey RAGFlow API密钥
-     * @param conversationId 对话ID
-     * @return 对话历史响应
-     */
-    @GET("api/v1/conversations/{conversationId}")
-    suspend fun getConversationHistory(
-        @Header("X-API-KEY") apiKey: String,
-        @Path("conversationId") conversationId: String
-    ): Response<Map<String, Any>>
-
+    
     /**
      * 获取知识库列表
-     * @param apiKey RAGFlow API密钥
+     * @param bearerToken RAGFlow API授权令牌（Bearer token）
      * @return 知识库列表响应
      */
     @GET("api/v1/knowledgebases")
     suspend fun getKnowledgeBases(
-        @Header("X-API-KEY") apiKey: String
+        @Header("Authorization") bearerToken: String
+    ): Response<Map<String, Any>>
+    
+    /**
+     * 获取共享聊天历史
+     * @param bearerToken RAGFlow API授权令牌（Bearer token）
+     * @param sharedId 共享ID
+     * @return 共享聊天历史响应
+     */
+    @GET("api/v1/chat/share")
+    suspend fun getSharedChat(
+        @Header("Authorization") bearerToken: String,
+        @Query("shared_id") sharedId: String
     ): Response<Map<String, Any>>
 } 

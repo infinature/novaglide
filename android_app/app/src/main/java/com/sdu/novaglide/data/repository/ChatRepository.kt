@@ -54,4 +54,15 @@ interface ChatRepository {
      * @return 是否已配置所有必要的设置
      */
     suspend fun isApiConfigured(): Boolean
+    
+    /**
+     * 获取共享聊天历史
+     * @param sharedId 共享ID
+     * @param authToken 认证令牌
+     * @return 聊天历史数据流
+     */
+    suspend fun getSharedChat(
+        sharedId: String,
+        authToken: String
+    ): Flow<List<com.sdu.novaglide.data.remote.dto.ragflow.RagFlowChatHistoryItem>>
 } 

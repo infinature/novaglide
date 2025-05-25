@@ -19,6 +19,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -38,10 +39,15 @@ fun QnaScreen(
     val coroutineScope = rememberCoroutineScope()
     
     // 当新消息添加时，滚动到底部
-    LaunchedEffect(messages.size) {
+    var uiUpdateTrigger by remember { mutableStateOf(0) }
+    
+    LaunchedEffect(messages.size, uiUpdateTrigger) {
         if (messages.isNotEmpty()) {
             coroutineScope.launch {
                 listState.animateScrollToItem(messages.size - 1)
+                // 强制重组以确保显示最新内容
+                delay(100)
+                uiUpdateTrigger = uiUpdateTrigger + 1
             }
         }
     }
@@ -80,6 +86,7 @@ fun QnaScreen(
                 .padding(paddingValues)
         ) {
             // API未配置提示
+            /* 
             if (!isApiConfigured) {
                 Card(
                     modifier = Modifier
@@ -101,21 +108,15 @@ fun QnaScreen(
                             tint = MaterialTheme.colorScheme.error
                         )
                         Spacer(modifier = Modifier.width(16.dp))
-                        Column {
-                            Text(
-                                text = "API未配置",
-                                style = MaterialTheme.typography.titleMedium,
-                                color = MaterialTheme.colorScheme.error
-                            )
-                            Spacer(modifier = Modifier.height(4.dp))
-                            Text(
-                                text = "请先在设置中配置DeepSeek的API密钥",
-                                style = MaterialTheme.typography.bodyMedium
-                            )
-                        }
+                        Text(
+                            text = errorMessage ?: "API未配置，请检查设置",
+                            color = MaterialTheme.colorScheme.error,
+                            style = MaterialTheme.typography.bodyMedium
+                        )
                     }
                 }
             }
+            */
             
             // 错误消息提示
             errorMessage?.let { error ->
@@ -162,6 +163,46 @@ fun QnaScreen(
                 }
             }
             
+            // 模型选择器
+            var selectedModel by remember { mutableStateOf("DeepSeek") } // 默认使用DeepSeek
+            
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 16.dp, vertical = 8.dp),
+                horizontalArrangement = Arrangement.Center
+            ) {
+                // DeepSeek 按钮
+                Button(
+                    onClick = { selectedModel = "DeepSeek" },
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = if (selectedModel == "DeepSeek") 
+                            MaterialTheme.colorScheme.primary else Color(0xFFE0E0E0),
+                        contentColor = if (selectedModel == "DeepSeek") 
+                            Color.White else Color.Black
+                    ),
+                    modifier = Modifier.padding(end = 8.dp),
+                    shape = RoundedCornerShape(16.dp)
+                ) {
+                    Text("DeepSeek")
+                }
+                
+                // RAGFlow 按钮
+                Button(
+                    onClick = { selectedModel = "RAGFlow" },
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = if (selectedModel == "RAGFlow") 
+                            MaterialTheme.colorScheme.secondary else Color(0xFFE0E0E0),
+                        contentColor = if (selectedModel == "RAGFlow") 
+                            Color.White else Color.Black
+                    ),
+                    modifier = Modifier.padding(start = 8.dp),
+                    shape = RoundedCornerShape(16.dp)
+                ) {
+                    Text("RAGFLOW")
+                }
+            }
+            
             // 底部输入框
             Row(
                 modifier = Modifier
@@ -192,7 +233,12 @@ fun QnaScreen(
                             IconButton(
                                 onClick = {
                                     if (userInput.isNotEmpty() && !isLoading) {
-                                        viewModel.sendMessageToDeepSeek(userInput)
+                                        // 根据选择的模型发送消息
+                                        if (selectedModel == "DeepSeek") {
+                                            viewModel.sendMessageToDeepSeek(userInput)
+                                        } else {
+                                            viewModel.sendQueryToRagFlow(userInput)
+                                        }
                                         userInput = ""
                                     }
                                 },
@@ -202,7 +248,10 @@ fun QnaScreen(
                                     Icons.Filled.Send,
                                     contentDescription = "发送",
                                     tint = if (userInput.isNotEmpty() && !isLoading)
-                                        MaterialTheme.colorScheme.primary
+                                        if (selectedModel == "DeepSeek") 
+                                            MaterialTheme.colorScheme.primary 
+                                        else 
+                                            MaterialTheme.colorScheme.secondary
                                     else
                                         Color.Gray
                                 )
@@ -266,12 +315,20 @@ fun DomainMessageItem(message: com.sdu.novaglide.domain.model.ChatMessage) {
                     )
                 }
             } else {
+                // 添加日志跟踪消息内容
+                val displayContent = if (message.content.isBlank()) "(空内容)" else message.content
+                
                 Text(
-                    text = message.content,
+                    text = displayContent,
                     color = if (message.role == com.sdu.novaglide.domain.model.MessageRole.USER) 
                         Color.White else Color.Black,
                     fontSize = 14.sp
                 )
+                
+                // 强制重组，确保内容显示
+                DisposableEffect(message.content) {
+                    onDispose { }
+                }
             }
         }
         

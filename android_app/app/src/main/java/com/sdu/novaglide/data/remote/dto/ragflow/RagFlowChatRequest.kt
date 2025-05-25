@@ -1,38 +1,15 @@
 package com.sdu.novaglide.data.remote.dto.ragflow
 
-import com.google.gson.annotations.SerializedName
-
 /**
- * RAGFlow聊天请求数据模型
+ * 新的请求格式，不再使用固定的请求模型
+ * 现在使用Map<String, Any>构建请求体，以适应API变化
+ * 
+ * 主要使用的字段：
+ * - 新建会话：{"name": String}
+ * - 发送问题：{
+ *   "question": String,      // 问题内容
+ *   "stream": Boolean,       // 是否流式输出
+ *   "session_id": String     // 可选的会话ID
+ * }
  */
-data class RagFlowChatRequest(
-    @SerializedName("assistant_id")
-    val assistantId: String,                // 助手ID
-    
-    @SerializedName("conversation_id")
-    val conversationId: String? = null,     // 对话ID（用于继续对话）
-    
-    @SerializedName("query")
-    val query: String,                      // 用户查询文本
-    
-    @SerializedName("stream")
-    val stream: Boolean = false,            // 是否启用流式输出
-    
-    @SerializedName("sys_prompt")
-    val systemPrompt: String? = null,       // 系统提示词（可选）
-    
-    @SerializedName("similarity_threshold")
-    val similarityThreshold: Double = 0.2,  // 相似度阈值
-    
-    @SerializedName("top_n")
-    val topN: Int = 10,                     // 提取的最大文档数量
-    
-    @SerializedName("keyword_similarity_weight")
-    val keywordSimilarityWeight: Double = 0.7, // 关键词相似度权重
-    
-    @SerializedName("multi_turn_optimization")
-    val multiTurnOptimization: Boolean = true, // 是否启用多轮优化
-    
-    @SerializedName("use_knowledge_graph")
-    val useKnowledgeGraph: Boolean = false  // 是否使用知识图谱
-) 
+// 类已经删除，改用Map<String, Any>构建请求
