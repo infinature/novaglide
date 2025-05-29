@@ -23,6 +23,13 @@ import com.sdu.novaglide.ui.features.qna.QnaScreen
 import com.sdu.novaglide.ui.features.qna.QnaViewModel
 import com.sdu.novaglide.ui.features.home.HomeScreen
 import com.sdu.novaglide.ui.features.profile.ProfileScreen
+import com.sdu.novaglide.ui.features.profile.UserInfoScreen
+import com.sdu.novaglide.ui.features.profile.UserInfoViewModel
+import androidx.compose.ui.platform.LocalContext
+import com.sdu.novaglide.core.database.AppDatabase
+import com.sdu.novaglide.data.repository.UserRepositoryImpl
+import com.sdu.novaglide.data.repository.UserRepository
+import com.sdu.novaglide.NovaGlideApplication
 
 private const val TAG = "AppNavigation"
 
@@ -35,6 +42,7 @@ object AppRoute {
     const val API_SETTINGS = "api_settings"
     const val PROFILE = "profile"
     const val NEWS = "news"
+    const val USER_INFO = "user_info"
 }
 
 /**
@@ -48,9 +56,18 @@ fun AppNavigation(
     chatRepository: ChatRepository,
     apiKeyStore: ApiKeyStore
 ) {
+    val context = LocalContext.current
     // 创建视图模型实例
     val qnaViewModel = remember { QnaViewModel(chatRepository, apiKeyStore) }
     val apiSettingsViewModel = remember { ApiSettingsViewModel(apiKeyStore) }
+    
+    // 创建 UserRepository 和 UserInfoViewModel
+    val userInfoViewModel = remember {
+        val application = context.applicationContext as NovaGlideApplication
+        val userDao = application.userDao
+        val userRepository: UserRepository = UserRepositoryImpl(userDao)
+        UserInfoViewModel(userRepository)
+    } 
     
     LaunchedEffect(key1 = Unit) {
         Log.d(TAG, "AppNavigation 初始化完成，开始导航至: $startDestination")
@@ -86,14 +103,42 @@ fun AppNavigation(
             )
         }
         
-        // 个人资料
+        // 个人资料主页
         composable(AppRoute.PROFILE) {
-            ProfileScreen(onNavigateBack = { navController.popBackStack() })
+            ProfileScreen(
+                onNavigateBack = { navController.popBackStack() },
+                onNavigateToUserInfo = { navController.navigate(AppRoute.USER_INFO) },
+                viewModel = userInfoViewModel,
+                onNavigateToHome = {
+                    navController.navigate(AppRoute.HOME) {
+                        popUpTo(navController.graph.startDestinationId) {
+                            saveState = true
+                        }
+                        launchSingleTop = true
+                        restoreState = true
+                    }
+                },
+                onNavigateToChat = {
+                    navController.navigate(AppRoute.QNA) {
+                        popUpTo(navController.graph.startDestinationId) {
+                            saveState = true
+                        }
+                        launchSingleTop = true
+                        restoreState = true
+                    }
+                }
+            )
+        }
+
+        // 用户信息详情页
+        composable(AppRoute.USER_INFO) {
+            UserInfoScreen(
+                onNavigateBack = { navController.popBackStack() }
+            )
         }
         
         // 新闻
         composable(AppRoute.NEWS) {
-            // NewsScreen(onNavigateBack = { navController.popBackStack() })
             TemporaryScreen("新闻页面", onNavigateBack = { navController.popBackStack() })
         }
     }

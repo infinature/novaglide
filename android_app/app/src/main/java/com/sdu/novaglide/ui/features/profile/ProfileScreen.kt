@@ -1,45 +1,50 @@
 package com.sdu.novaglide.ui.features.profile
 
-
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
-
-import androidx.compose.material.icons.filled.ArrowForward
-import androidx.compose.material.icons.filled.Favorite
-import androidx.compose.material.icons.filled.Settings
-import androidx.compose.material.icons.filled.ExitToApp
-import androidx.compose.material.icons.filled.History
-
-import androidx.compose.material.icons.filled.History
-
+import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
-
+// import androidx.compose.ui.res.painterResource // 暂时注释掉，如果实际使用需要取消注释
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.compose.runtime.*
+import com.sdu.novaglide.R // 假设 R 文件存在且包含 avatar_placeholder
 import com.sdu.novaglide.ui.components.BottomNavBar
 
 @Composable
 fun ProfileScreen(
     onNavigateBack: () -> Unit,
-    onNavigateToUserInfo: () -> Unit = {} // 添加导航到用户信息页面的回调
+    onNavigateToUserInfo: () -> Unit,
+    viewModel: UserInfoViewModel,
+    onNavigateToHome: () -> Unit,
+    onNavigateToChat: () -> Unit
 ) {
+    val userInfoState by viewModel.userInfoState.collectAsState()
+
+    // 当 ProfileScreen 可见时，加载或刷新用户信息
+    LaunchedEffect(Unit) {
+        viewModel.loadCurrentUserInfo()
+    }
+
     Scaffold(
         bottomBar = {
             BottomNavBar(
                 selectedIndex = 2, // 个人页面是第三个选项卡
-                onHomeClick = { onNavigateBack() },
-                onChatClick = { /* 导航到聊天页面 */ },
+                onHomeClick = onNavigateToHome,
+                onChatClick = onNavigateToChat,
                 onProfileClick = { /* 当前页面，无需操作 */ }
             )
         }
@@ -48,110 +53,86 @@ fun ProfileScreen(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(paddingValues)
-                .background(Color(0xFFF5F5F5))
+                .background(Color(0xFFF5F5F5)), // 淡灰色背景
+            horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            // 用户信息卡片，添加点击事件导航到用户信息页面
+            // 用户信息卡片
             Card(
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(16.dp)
-                    .clickable { onNavigateToUserInfo() }, // 添加点击事件
+                    .clickable { onNavigateToUserInfo() },
                 elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
                 colors = CardDefaults.cardColors(containerColor = Color.White)
             ) {
-                Column(
+                Row(
                     modifier = Modifier
                         .fillMaxWidth()
                         .padding(16.dp),
-                    horizontalAlignment = Alignment.CenterHorizontally
+                    verticalAlignment = Alignment.CenterVertically
                 ) {
-                    // 用户头像
+                    // 临时头像占位符
                     Box(
                         modifier = Modifier
-                            .size(80.dp)
+                            .size(64.dp)
                             .clip(CircleShape)
                             .background(Color.LightGray),
                         contentAlignment = Alignment.Center
                     ) {
-                        // 可以替换为实际头像图片
-                        // Image(
-                        //     painter = painterResource(id = R.drawable.avatar_placeholder),
-                        //     contentDescription = "用户头像",
-                        //     modifier = Modifier.fillMaxSize(),
-                        //     contentScale = ContentScale.Crop
-                        // )
+                        // 如果有头像 URL，可以使用 Coil 等库加载
+                        // Image(painter = painterResource(id = R.drawable.avatar_placeholder), contentDescription = "头像")
+                        when (val state = userInfoState) {
+                            is UserInfoState.Success -> {
+                                if (state.userInfo.nickname.isNotEmpty()) {
+                                    Text(state.userInfo.nickname.first().toString(), fontSize = 24.sp, color = Color.White)
+                                }
+                            }
+                            else -> {
+                                // 加载中或错误时可以显示默认字符或图标
+                                Icon(Icons.Filled.Person, contentDescription = "默认头像", tint = Color.Gray, modifier = Modifier.size(40.dp))
+                            }
+                        }
                     }
                     
-                    Spacer(modifier = Modifier.height(16.dp))
+                    Spacer(modifier = Modifier.width(16.dp))
                     
-                    // 用户名
-                    Text(
-                        text = "昵称",
-                        fontSize = 20.sp,
-                        fontWeight = FontWeight.Bold
-                    )
-                    
-                    Spacer(modifier = Modifier.height(4.dp))
-                    
-                    // 用户简介
-                    Text(
-                        text = "欢迎访问",
-                        fontSize = 14.sp,
-                        color = Color.Gray
-                    )
+                    Column {
+                        // 昵称
+                        when (val state = userInfoState) {
+                            is UserInfoState.Success -> {
+                                Text(
+                                    text = state.userInfo.nickname, 
+                                    fontSize = 20.sp, 
+                                    fontWeight = FontWeight.Bold
+                                )
+                                // 简介或状态 - 从 state.userInfo.bio 获取
+                                Text(
+                                    text = state.userInfo.bio.take(30) + if (state.userInfo.bio.length > 30) "..." else "", // 显示部分简介
+                                    fontSize = 14.sp, 
+                                    color = Color.Gray
+                                )
+                            }
+                            is UserInfoState.Loading -> {
+                                Text(text = "加载中...", fontSize = 20.sp, fontWeight = FontWeight.Bold)
+                            }
+                            is UserInfoState.Error -> {
+                                Text(text = "获取失败", fontSize = 20.sp, fontWeight = FontWeight.Bold, color = Color.Red)
+                            }
+                        }
+                    }
                 }
             }
             
             // 功能列表
-            Card(
+            Column(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(16.dp),
-                elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
-                colors = CardDefaults.cardColors(containerColor = Color.White)
+                    .padding(horizontal = 16.dp)
             ) {
-                Column(
-                    modifier = Modifier.fillMaxWidth()
-                ) {
-                    ProfileMenuItem(
-                        icon = Icons.Filled.Favorite,
-                        title = "我的收藏",
-                        onClick = { /* 导航到收藏页面 */ }
-                    )
-                    
-                    Divider(modifier = Modifier.padding(start = 56.dp, end = 16.dp))
-                    
-                    ProfileMenuItem(
-                        icon = Icons.Filled.History,
-                        title = "浏览历史",
-                        onClick = { /* 导航到浏览历史页面 */ }
-                    )
-                    
-                    Divider(modifier = Modifier.padding(start = 56.dp, end = 16.dp))
-                    
-                    ProfileMenuItem(
-                        icon = Icons.Filled.Settings,
-                        title = "偏好设置",
-                        onClick = { /* 导航到设置页面 */ }
-                    )
-                }
-            }
-            
-            // 退出登录
-            Card(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(16.dp),
-                elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
-                colors = CardDefaults.cardColors(containerColor = Color.White)
-            ) {
-                ProfileMenuItem(
-                    icon = Icons.Filled.ExitToApp,
-                    title = "退出登录",
-                    onClick = { /* 执行退出登录操作 */ },
-                    showArrow = false,
-                    textColor = Color.Red
-                )
+                ProfileMenuItem(icon = Icons.Filled.Favorite, title = "我的收藏", onClick = { /* TODO */ })
+                ProfileMenuItem(icon = Icons.Filled.History, title = "浏览历史", onClick = { /* TODO */ })
+                ProfileMenuItem(icon = Icons.Filled.Settings, title = "偏好设置", onClick = { /* TODO */ })
+                ProfileMenuItem(icon = Icons.Filled.ExitToApp, title = "退出登录", onClick = { /* TODO */ })
             }
         }
     }
@@ -161,40 +142,46 @@ fun ProfileScreen(
 fun ProfileMenuItem(
     icon: ImageVector,
     title: String,
-    onClick: () -> Unit,
-    showArrow: Boolean = true,
-    textColor: Color = Color.Black
+    onClick: () -> Unit
 ) {
-    Row(
+    Card(
         modifier = Modifier
             .fillMaxWidth()
-            .clickable { onClick() }
-            .padding(16.dp),
-        verticalAlignment = Alignment.CenterVertically
+            .padding(vertical = 4.dp)
+            .clickable { onClick() },
+        colors = CardDefaults.cardColors(containerColor = Color.White)
     ) {
-        Icon(
-            imageVector = icon,
-            contentDescription = title,
-            tint = MaterialTheme.colorScheme.primary,
-            modifier = Modifier.size(24.dp)
-        )
-        
-        Spacer(modifier = Modifier.width(16.dp))
-        
-        Text(
-            text = title,
-            fontSize = 16.sp,
-            color = textColor,
-            modifier = Modifier.weight(1f)
-        )
-        
-        if (showArrow) {
-            Icon(
-                imageVector = Icons.Filled.ArrowForward,
-                contentDescription = "更多",
-                tint = Color.Gray,
-                modifier = Modifier.size(20.dp)
-            )
+        Row(
+            modifier = Modifier
+                .padding(16.dp)
+                .fillMaxWidth(),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Icon(icon, contentDescription = title, tint = MaterialTheme.colorScheme.primary)
+            Spacer(modifier = Modifier.width(16.dp))
+            Text(text = title, fontSize = 16.sp)
+            Spacer(modifier = Modifier.weight(1f))
+            Icon(Icons.Filled.ArrowForwardIos, contentDescription = "进入", tint = Color.Gray)
         }
     }
 }
+
+// 为了预览，可能需要一个 ViewModel 的 Fake 实现
+// class FakeUserInfoViewModel : UserInfoViewModel(FakeUserRepository()) {}
+// class FakeUserRepository : UserRepository { /* ... 实现接口 ... */ }
+
+/*
+@Preview(showBackground = true)
+@Composable
+fun ProfileScreenPreview() {
+    NovaGlideTheme {
+        ProfileScreen(
+            onNavigateBack = {},
+            onNavigateToUserInfo = {},
+            viewModel = FakeUserInfoViewModel(), // 使用 Fake ViewModel
+            onNavigateToHome = {},
+            onNavigateToChat = {}
+        )
+    }
+}
+*/
