@@ -28,7 +28,8 @@ import com.sdu.novaglide.ui.components.BottomNavBar
 @Composable
 fun HomeScreen(
     onNavigateToQna: () -> Unit,
-    onNavigateToProfile: () -> Unit
+    onNavigateToProfile: () -> Unit,
+    onNavigateToNewsDetail: (String) -> Unit
 ) {
     var selectedTabIndex by remember { mutableStateOf(0) }
     val tabs = listOf("保研", "考研", "留学", "考公", "推荐")
@@ -102,18 +103,22 @@ fun HomeScreen(
                 .padding(horizontal = 16.dp)
         ) {
             // 模拟资讯列表
-            val newsItems = List(5) { 
+            val newsItems = List(5) { index ->
                 NewsItem(
-                    title = "资讯标题",
+                    id = "news_${selectedTabIndex}_$index",
+                    title = "资讯标题 ${index + 1}",
                     summary = "摘要内容摘要内容摘要内容摘要内容摘要内容",
-                    source = "来源",
+                    source = "来源 ${tabs[selectedTabIndex]}",
                     timeAgo = "2小时前",
                     category = tabs[selectedTabIndex]
                 )
             }
             
             items(newsItems) { newsItem ->
-                NewsCard(newsItem = newsItem)
+                NewsCard(
+                    newsItem = newsItem,
+                    onClick = { onNavigateToNewsDetail(newsItem.id) }
+                )
                 Spacer(modifier = Modifier.height(16.dp))
             }
         }
@@ -121,11 +126,11 @@ fun HomeScreen(
 }
 
 @Composable
-fun NewsCard(newsItem: NewsItem) {
+fun NewsCard(newsItem: NewsItem, onClick: () -> Unit) {
     Card(
         modifier = Modifier
             .fillMaxWidth()
-            .clickable { /* 点击资讯卡片 */ },
+            .clickable { onClick() },
         elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
         colors = CardDefaults.cardColors(containerColor = Color.White)
     ) {
@@ -174,6 +179,7 @@ fun NewsCard(newsItem: NewsItem) {
 }
 
 data class NewsItem(
+    val id: String,
     val title: String,
     val summary: String,
     val source: String,

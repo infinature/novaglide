@@ -43,6 +43,7 @@ object AppRoute {
     const val PROFILE = "profile"
     const val NEWS = "news"
     const val USER_INFO = "user_info"
+    const val NEWS_DETAIL = "news_detail"
 }
 
 /**
@@ -82,7 +83,10 @@ fun AppNavigation(
         composable(AppRoute.HOME) {
             com.sdu.novaglide.ui.features.home.HomeScreen(
                 onNavigateToQna = { navController.navigate(AppRoute.QNA) },
-                onNavigateToProfile = { navController.navigate(AppRoute.PROFILE) }
+                onNavigateToProfile = { navController.navigate(AppRoute.PROFILE) },
+                onNavigateToNewsDetail = { newsId ->
+                    navController.navigate("${AppRoute.NEWS_DETAIL}/$newsId")
+                }
             )
         }
         
@@ -111,11 +115,7 @@ fun AppNavigation(
                 viewModel = userInfoViewModel,
                 onNavigateToHome = {
                     navController.navigate(AppRoute.HOME) {
-                        popUpTo(navController.graph.startDestinationId) {
-                            saveState = true
-                        }
                         launchSingleTop = true
-                        restoreState = true
                     }
                 },
                 onNavigateToChat = {
@@ -140,6 +140,15 @@ fun AppNavigation(
         // 新闻
         composable(AppRoute.NEWS) {
             TemporaryScreen("新闻页面", onNavigateBack = { navController.popBackStack() })
+        }
+
+        // 新增资讯详情页路由
+        composable("${AppRoute.NEWS_DETAIL}/{newsId}") { backStackEntry ->
+            val newsId = backStackEntry.arguments?.getString("newsId")
+            com.sdu.novaglide.ui.features.home.NewsDetailScreen(
+                newsId = newsId,
+                onNavigateBack = { navController.popBackStack() }
+            )
         }
     }
 }
