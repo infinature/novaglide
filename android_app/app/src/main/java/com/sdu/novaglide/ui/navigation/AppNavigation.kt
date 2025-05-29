@@ -21,6 +21,8 @@ import com.sdu.novaglide.ui.features.qna.ApiSettingsScreen
 import com.sdu.novaglide.ui.features.qna.ApiSettingsViewModel
 import com.sdu.novaglide.ui.features.qna.QnaScreen
 import com.sdu.novaglide.ui.features.qna.QnaViewModel
+import com.sdu.novaglide.ui.features.home.HomeScreen
+import com.sdu.novaglide.ui.features.profile.ProfileScreen
 
 private const val TAG = "AppNavigation"
 
@@ -61,10 +63,10 @@ fun AppNavigation(
     ) {
         // 首页
         composable(AppRoute.HOME) {
-            HomeScreen(onNavigate = { route -> 
-                Log.d(TAG, "正在导航至: $route")
-                navController.navigate(route) 
-            })
+            com.sdu.novaglide.ui.features.home.HomeScreen(
+                onNavigateToQna = { navController.navigate(AppRoute.QNA) },
+                onNavigateToProfile = { navController.navigate(AppRoute.PROFILE) }
+            )
         }
         
         // 智能问答
@@ -86,8 +88,7 @@ fun AppNavigation(
         
         // 个人资料
         composable(AppRoute.PROFILE) {
-            // ProfileScreen(onNavigateBack = { navController.popBackStack() })
-            TemporaryScreen("个人资料页面", onNavigateBack = { navController.popBackStack() })
+            ProfileScreen(onNavigateBack = { navController.popBackStack() })
         }
         
         // 新闻
@@ -101,7 +102,7 @@ fun AppNavigation(
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun HomeScreen(onNavigate: (String) -> Unit) {
-    Log.d(TAG, "渲染HomeScreen")
+    Log.d(TAG, "渲染旧的HomeScreen (AppNavigation 内定义)")
     
     Column(
         modifier = Modifier.fillMaxSize(),
