@@ -40,16 +40,26 @@ fun HomeScreen(
     onNavigateToProfile: () -> Unit,
     onNavigateToNewsDetail: (String) -> Unit
 ) {
-    val newsList by newsViewModel.newsList.collectAsState()
+    val viewModel: NewsViewModel = viewModel()
+    val newsList by viewModel.newsList.collectAsState()
+    var searchQuery by remember { mutableStateOf("") }
     LaunchedEffect(Unit) {
         newsViewModel.fetchNews()
     }
     var selectedTabIndex by remember { mutableStateOf(0) }
     val tabs = listOf("保研", "考研", "留学", "考公", "推荐")
     val currentUserState by userInfoViewModel.userInfoState.collectAsState()
-    val displayedNewsItems = remember(selectedTabIndex, newsList) {
+    val displayedNewsItems = remember(selectedTabIndex, newsList, searchQuery) {
         val tab = tabs[selectedTabIndex]
-        if (tab == "推荐") newsList else newsList.filter { it.category == tab }
+        val filteredByTab = if (tab == "推荐") newsList else newsList.filter { it.category == tab }
+        if (searchQuery.isNotBlank()) {
+            filteredByTab.filter {
+                it.title.contains(searchQuery, ignoreCase = true) ||
+                it.summary.contains(searchQuery, ignoreCase = true)
+            }
+        } else {
+            filteredByTab
+        }
     }
 
     Scaffold(
@@ -79,8 +89,8 @@ fun HomeScreen(
                 
                 // 搜索栏
                 OutlinedTextField(
-                    value = "",
-                    onValueChange = { },
+                    value = searchQuery,
+                    onValueChange = { searchQuery = it },
                     modifier = Modifier
                         .fillMaxWidth()
                         .padding(horizontal = 16.dp, vertical = 8.dp)
