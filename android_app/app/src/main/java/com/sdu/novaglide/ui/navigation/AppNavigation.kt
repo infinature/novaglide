@@ -111,8 +111,8 @@ fun AppNavigation(
                 newsViewModel = newsViewModel,
                 onNavigateToQna = { navController.navigate(AppRoute.QNA) },
                 onNavigateToProfile = { navController.navigate(AppRoute.PROFILE) },
-                onNavigateToNewsDetail = { newsId ->
-                    navController.navigate("${AppRoute.NEWS_DETAIL}/$newsId")
+                onNavigateToNewsDetail = { documentId ->
+                    navController.navigate("${AppRoute.NEWS_DETAIL}/$documentId")
                 }
             )
         }
@@ -193,8 +193,8 @@ fun AppNavigation(
                 userInfoViewModel = actualUserInfoViewModel,
                 browsingHistoryViewModel = browsingHistoryViewModel,
                 onNavigateBack = { navController.popBackStack() },
-                onNavigateToNewsDetail = { newsId ->
-                    navController.navigate("${AppRoute.NEWS_DETAIL}/$newsId") // 确保导航逻辑完整
+                onNavigateToNewsDetail = { documentId ->
+                    navController.navigate("${AppRoute.NEWS_DETAIL}/$documentId") // 确保导航逻辑完整
                 }
             )
         }
@@ -205,8 +205,8 @@ fun AppNavigation(
                 userInfoViewModel = actualUserInfoViewModel,
                 favoriteArticleViewModel = favoriteArticleViewModel,
                 onNavigateBack = { navController.popBackStack() },
-                onNavigateToNewsDetail = { newsId ->
-                    navController.navigate("${AppRoute.NEWS_DETAIL}/$newsId")
+                onNavigateToNewsDetail = { documentId ->
+                    navController.navigate("${AppRoute.NEWS_DETAIL}/$documentId")
                 }
             )
         }
@@ -222,15 +222,19 @@ fun AppNavigation(
         }
 
         // 资讯详情页路由
-        composable("${AppRoute.NEWS_DETAIL}/{newsId}") { backStackEntry ->
-            val newsId = backStackEntry.arguments?.getString("newsId")
-            NewsDetailScreen(
-                newsId = newsId,
-                userInfoViewModel = actualUserInfoViewModel,
-                favoriteArticleViewModel = favoriteArticleViewModel,
-                newsViewModel = newsViewModel,
-                onNavigateBack = { navController.popBackStack() }
-            )
+        composable("${AppRoute.NEWS_DETAIL}/{documentId}") { backStackEntry ->
+            val documentId = backStackEntry.arguments?.getString("documentId")
+            if (documentId != null) {
+                NewsDetailScreen(
+                    documentId = documentId,
+                    onBack = { navController.popBackStack() }
+                )
+            } else {
+                // Handle error: documentId is null
+                Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                    Text("错误：未提供资讯ID")
+                }
+            }
         }
 
         // 登录页路由

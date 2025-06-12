@@ -123,6 +123,7 @@ interface RagFlowApiService {
      * @param datasetId 知识库ID
      * @param page 页码
      * @param pageSize 每页数量
+     * @param query 查询条件
      * @return 文档元数据列表响应
      */
     @GET("api/v1/datasets/{dataset_id}/documents")
@@ -130,6 +131,21 @@ interface RagFlowApiService {
         @Header("Authorization") bearerToken: String,
         @Path("dataset_id") datasetId: String,
         @Query("page") page: Int = 1,
-        @Query("page_size") pageSize: Int = 100
+        @Query("page_size") pageSize: Int = 100,
+        @Query("q") query: String? = null
     ): Response<Map<String, Any>>
+
+    /**
+     * 获取单个文档详情
+     * @param bearerToken RAGFlow API授权令牌（Bearer token）
+     * @param datasetId 知识库ID
+     * @param docId 文档ID
+     * @return 单个文档的元数据响应
+     */
+    @GET("api/v1/datasets/{dataset_id}/documents/{doc_id}")
+    suspend fun getDatasetDocumentDetail(
+        @Header("Authorization") bearerToken: String,
+        @Path("dataset_id") datasetId: String,
+        @Path("doc_id") docId: String
+    ): Response<ResponseBody>
 } 

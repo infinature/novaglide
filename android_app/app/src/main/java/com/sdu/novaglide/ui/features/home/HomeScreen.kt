@@ -7,6 +7,8 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.KeyboardActions
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.Person
@@ -17,9 +19,14 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.input.key.Key
+import androidx.compose.ui.input.key.key
+import androidx.compose.ui.input.key.onKeyEvent
+import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.sdu.novaglide.ui.components.BottomNavBar
@@ -41,8 +48,13 @@ fun HomeScreen(
     onNavigateToNewsDetail: (String) -> Unit
 ) {
     val newsList by newsViewModel.newsList.collectAsState()
+    val searchQuery by newsViewModel.searchQuery.collectAsState()
+    val keyboardController = LocalSoftwareKeyboardController.current
+
     LaunchedEffect(Unit) {
-        newsViewModel.fetchNews()
+        if (newsList.isEmpty()) {
+            newsViewModel.fetchNews()
+        }
     }
     var selectedTabIndex by remember { mutableStateOf(0) }
     val tabs = listOf("保研", "考研", "留学", "考公", "推荐")
@@ -79,12 +91,24 @@ fun HomeScreen(
                 
                 // 搜索栏
                 OutlinedTextField(
-                    value = "",
-                    onValueChange = { },
+                    value = searchQuery,
+                    onValueChange = {
+                        newsViewModel.onSearchQueryChanged(it)
+                        newsViewModel.searchNews(it)
+                     },
                     modifier = Modifier
                         .fillMaxWidth()
                         .padding(horizontal = 16.dp, vertical = 8.dp)
-                        .height(48.dp),
+                        .height(48.dp)
+                        .onKeyEvent {
+                            if (it.key == Key.Enter) {
+                                newsViewModel.searchNews(searchQuery)
+                                keyboardController?.hide()
+                                true
+                            } else {
+                                false
+                            }
+                        },
                     placeholder = { Text("搜索资讯") },
                     leadingIcon = { Icon(Icons.Outlined.Search, contentDescription = "搜索") },
                     singleLine = true,
@@ -92,6 +116,15 @@ fun HomeScreen(
                     colors = TextFieldDefaults.outlinedTextFieldColors(
                         containerColor = Color(0xFFF5F5F5),
                         unfocusedBorderColor = Color.Transparent
+                    ),
+                    keyboardOptions = KeyboardOptions.Default.copy(
+                        imeAction = ImeAction.Search
+                    ),
+                    keyboardActions = KeyboardActions(
+                        onSearch = {
+                            newsViewModel.searchNews(searchQuery)
+                            keyboardController?.hide()
+                        }
                     )
                 )
                 

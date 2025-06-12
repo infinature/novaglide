@@ -1,5 +1,6 @@
 package com.sdu.novaglide.ui.features.home
 
+import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.sdu.novaglide.data.remote.api.RagFlowApiService
@@ -19,6 +20,11 @@ import javax.net.ssl.X509TrustManager
 class NewsViewModel : ViewModel() {
     private val _newsList = MutableStateFlow<List<NewsArticle>>(emptyList())
     val newsList: StateFlow<List<NewsArticle>> = _newsList
+
+    private var allNews: List<NewsArticle> = emptyList()
+
+    private val _searchQuery = MutableStateFlow("")
+    val searchQuery: StateFlow<String> = _searchQuery
 
     private val apiKey = "ragflow-ExZjM1NmYyNDc3NDExZjBhMTIxZmVjY2"
     private val datasetId = "bfd51b5e475d11f0850dfecceaed7a8e"
@@ -46,6 +52,25 @@ class NewsViewModel : ViewModel() {
         .build()
     private val api = retrofit.create(RagFlowApiService::class.java)
 
+    fun onSearchQueryChanged(query: String) {
+        _searchQuery.value = query
+        if (query.isBlank()) {
+            _newsList.value = allNews
+        }
+    }
+
+    fun searchNews(query: String) {
+        if (query.isBlank()) {
+            _newsList.value = allNews
+            return
+        }
+        val filteredList = allNews.filter {
+            it.title.contains(query, ignoreCase = true) ||
+            it.summary.contains(query, ignoreCase = true)
+        }
+        _newsList.value = filteredList
+    }
+
     fun fetchNews() {
         viewModelScope.launch {
             try {
@@ -53,23 +78,25 @@ class NewsViewModel : ViewModel() {
                     bearerToken = "Bearer $apiKey",
                     datasetId = datasetId,
                     page = 1,
-                    pageSize = 100
+                    pageSize = 100,
+                    query = null // Always fetch all news
                 )
                 if (response.isSuccessful) {
                     val body = response.body()
-                    println("RAGFLOW返回内容: $body")
+                    Log.d("NewsViewModel", "RAGFLOW完整返回内容: $body")
                     val data = body?.get("data")
-                    println("data字段内容: $data")
+                    // Log.d("NewsViewModel", "data字段内容: $data")
                     val docs = (data as? Map<*, *>)?.get("docs") as? List<Map<String, Any>>
-                    println("docs内容: $docs")
+                    // Log.d("NewsViewModel", "docs内容: $docs")
                     val news = docs?.mapNotNull { doc ->
                         try {
+                            // Log the entire doc object to inspect its structure
+                            Log.d("NewsViewModel", "单个文档的完整结构: $doc")
                             val meta = doc["meta_fields"] as? Map<*, *>
                             NewsArticle(
-                                id = meta?.get("id")?.toString() ?: "",
+                                id = doc["id"]?.toString() ?: "", // Let's try getting id from the top-level doc
                                 title = meta?.get("title")?.toString() ?: "",
                                 summary = meta?.get("summary")?.toString() ?: "",
-                                content = meta?.get("content")?.toString() ?: "",
                                 source = meta?.get("source")?.toString() ?: "",
                                 publishTime = meta?.get("publishTime")?.toString()?.toLongOrNull() ?: 0L,
                                 category = meta?.get("category")?.toString() ?: ""
@@ -79,7 +106,8 @@ class NewsViewModel : ViewModel() {
                             null
                         }
                     } ?: emptyList()
-                    println("最终newsList: $news")
+                    // Log.d("NewsViewModel", "最终newsList: $news")
+                    allNews = news
                     _newsList.value = news
                 } else {
                     println("RAGFLOW接口失败: ${response.code()} ${response.message()}")

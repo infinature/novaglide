@@ -5,7 +5,6 @@ data class NewsArticle(
     val id: String,
     val title: String,
     val summary: String,
-    val content: String,
     val source: String,
     val publishTime: Long,
     val category: String
