@@ -32,7 +32,9 @@ fun ProfileScreen(
     onNavigateToHome: () -> Unit,
     onNavigateToChat: () -> Unit,
     onNavigateToLogout: () -> Unit, // 新增登出回调
-    onNavigateToEditUserInfo: () -> Unit // 新增导航到编辑页面的回调
+    onNavigateToEditUserInfo: () -> Unit, // 新增导航到编辑页面的回调
+    onNavigateToBrowsingHistory: () -> Unit, // 确保此参数存在
+    onNavigateToFavorites: () -> Unit // 新增导航到收藏页面的回调
 ) {
     val userInfoState by viewModel.userInfoState.collectAsState()
 
@@ -145,9 +147,9 @@ fun ProfileScreen(
                     .fillMaxWidth()
                     .padding(horizontal = 16.dp)
             ) {
-                ProfileMenuItem(icon = Icons.Filled.Favorite, title = "我的收藏", onClick = { /* TODO */ })
-                ProfileMenuItem(icon = Icons.Filled.History, title = "浏览历史", onClick = { /* TODO */ })
-                ProfileMenuItem(icon = Icons.Filled.Edit, title = "信息编辑", onClick = onNavigateToEditUserInfo) // 修改标题和onClick
+                ProfileMenuItem(icon = Icons.Filled.Favorite, title = "我的收藏", onClick = onNavigateToFavorites) // 修改onClick
+                ProfileMenuItem(icon = Icons.Filled.History, title = "浏览历史", onClick = onNavigateToBrowsingHistory) // 使用此参数
+                ProfileMenuItem(icon = Icons.Filled.Edit, title = "信息编辑", onClick = onNavigateToEditUserInfo)
                 ProfileMenuItem(icon = Icons.Filled.ExitToApp, title = "退出登录", onClick = onNavigateToLogout)
             }
         }

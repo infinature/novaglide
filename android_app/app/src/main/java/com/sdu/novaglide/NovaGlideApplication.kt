@@ -3,7 +3,14 @@ package com.sdu.novaglide
 import android.app.Application
 import android.util.Log
 import com.sdu.novaglide.core.database.AppDatabase
-import com.sdu.novaglide.data.local.entity.UserEntity
+import com.sdu.novaglide.data.local.dao.BrowsingHistoryDao
+import com.sdu.novaglide.data.local.dao.UserDao
+import com.sdu.novaglide.data.local.dao.FavoriteArticleDao
+import com.sdu.novaglide.data.local.entity.UserEntity // <--- 检查或添加此导入
+import com.sdu.novaglide.data.repository.BrowsingHistoryRepository
+import com.sdu.novaglide.data.repository.BrowsingHistoryRepositoryImpl
+import com.sdu.novaglide.data.repository.FavoriteArticleRepository
+import com.sdu.novaglide.data.repository.FavoriteArticleRepositoryImpl
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -13,30 +20,45 @@ import java.util.Date
 private const val TAG = "NovaGlideApplication"
 
 class NovaGlideApplication : Application() {
-    // 应用程序范围的协程作用域
-    val applicationScope = CoroutineScope(SupervisorJob())
-    
-    // 使用lazy但改进错误处理，不立即抛出异常，因为这可能导致应用崩溃
-    val database by lazy { 
-        try {
-            Log.i(TAG, "初始化数据库")
-            AppDatabase.getDatabase(this, applicationScope)
-        } catch (e: Exception) {
-            Log.e(TAG, "数据库初始化失败: ${e.message}", e)
-            // 在生产应用中，考虑实现后备策略而不是重新抛出
-            // 但对于教育目的，我们允许它崩溃以便找出根本原因
-            throw e
-        }
+    private val applicationScope = CoroutineScope(SupervisorJob())
+
+    private val database: AppDatabase by lazy {
+        Log.d(TAG, "获取数据库实例")
+        AppDatabase.getDatabase(this, applicationScope)
+    }
+
+    val userDao: UserDao by lazy {
+        Log.d(TAG, "获取UserDao实例")
+        database.userDao()
+    }
+
+    // Provide BrowsingHistoryDao
+    val browsingHistoryDao: BrowsingHistoryDao by lazy {
+        Log.d(TAG, "获取BrowsingHistoryDao实例")
+        database.browsingHistoryDao()
     }
     
-    // 使用by lazy懒加载UserDao
-    val userDao by lazy { database.userDao() }
+    // Provide BrowsingHistoryRepository
+    val browsingHistoryRepository: BrowsingHistoryRepository by lazy {
+        Log.d(TAG, "获取BrowsingHistoryRepository实例")
+        BrowsingHistoryRepositoryImpl(browsingHistoryDao)
+    }
+    
+    // 提供 FavoriteArticleDao
+    val favoriteArticleDao: FavoriteArticleDao by lazy {
+        Log.d(TAG, "获取FavoriteArticleDao实例")
+        database.favoriteArticleDao()
+    }
+
+    // 提供 FavoriteArticleRepository
+    val favoriteArticleRepository: FavoriteArticleRepository by lazy {
+        Log.d(TAG, "获取FavoriteArticleRepository实例")
+        FavoriteArticleRepositoryImpl(favoriteArticleDao)
+    }
     
     override fun onCreate() {
         super.onCreate()
-        Log.d(TAG, "应用启动")
-        
-        // 初始化数据库并填充测试数据
+        Log.d(TAG, "应用创建")
         initializeDatabase()
     }
     
@@ -44,53 +66,54 @@ class NovaGlideApplication : Application() {
         applicationScope.launch(Dispatchers.IO) {
             try {
                 Log.d(TAG, "开始初始化数据库")
-                val db = database
+                val db = database // 确保数据库被访问以触发创建
                 
-                val user = userDao.getCurrentUser()
+                // 检查用户数据，如果 createTestUser 被调用，这里可能间接相关
+                val user = userDao.getCurrentUser() // userDao.getCurrentUser() 可能返回 UserEntity
                 Log.d(TAG, "检查用户数据: ${if (user == null) "未找到用户" else "找到用户 ${user.userId}"}")
                 
-                // 如果您希望从一个干净的数据库开始，并且第一个注册用户是 U000001，
-                // 可以考虑注释掉 createTestUser() 的调用。
-                // 或者，如果 AppDatabase 的 Room.databaseBuilder().addCallback 中有预填充逻辑，
-                // 也需要检查那里的 userId 是否符合新规则。
                 if (user == null) {
                     Log.d(TAG, "未找到用户数据，考虑是否创建测试用户或依赖注册流程。")
-                    // createTestUser() // <--- 考虑是否需要这个测试用户
+                    // 如果 createTestUser 方法存在并且你正在使用它，请确保其内部 UserEntity 的使用是正确的。
+                    // 为了避免与自动生成的 userId 冲突并确保从登录页开始，通常建议注释掉此方法。
+                    // createTestUser() 
                 }
                 
                 Log.d(TAG, "数据库初始化完成")
             } catch (e: Exception) {
                 Log.e(TAG, "初始化数据库失败: ${e.message}", e)
+                // 可以在这里处理错误，例如显示一个通知或记录到更持久的日志
             }
         }
     }
     
+    // 如果您有 createTestUser 方法，并且它在第82行附近，请检查它：
+    /*
     private suspend fun createTestUser() {
-        // 如果保留此方法，请确保 userId "U12345678" 不会与新的 "U%06d" 格式冲突，
-        // 或者修改它以适应新格式，例如，如果这是唯一的预置用户，可以设为 "U000000" 或其他特殊值。
-        // 为了确保第一个注册用户是 U000001，最好在数据库为空时，不创建此测试用户。
         try {
             val currentTime = System.currentTimeMillis()
-            val demoUser = UserEntity(
-                userId = "U12345678", // 这个ID与新的自增逻辑可能不兼容
-                username = "student2024",
-                nickname = "学习达人",
-                email = "student2024@example.com",
-                phone = "138****1234",
+            // 确保 UserEntity 被正确引用和导入
+            val demoUser = UserEntity(  // <--- 如果这是第82行附近，确保 UserEntity 已导入
+                userId = "U_test_001", 
+                username = "testuser",
+                nickname = "测试用户",
+                email = "test@example.com",
+                password = "password", // 注意：密码应被哈希处理
+                phone = "1234567890",
                 avatar = "",
-                bio = "热爱学习，备战考研",
-                registrationDate = Date(currentTime - 90 * 24 * 60 * 60 * 1000L),
+                bio = "这是一个测试用户。",
+                registrationDate = Date(currentTime - 86400000L * 5), // 5 days ago
                 lastLoginDate = Date(currentTime),
                 eduLevel = "本科",
-                institution = "山东大学",
-                graduationYear = 2025,
-                password = "password123"
+                institution = "测试大学",
+                graduationYear = 2023
             )
-            // userDao.insertUser(demoUser)
-            // Log.d(TAG, "测试用户创建成功: ${demoUser.userId}，密码: ${demoUser.password}")
-            Log.d(TAG, "createTestUser: 已被注释或需要调整以适应新的userId逻辑。")
+            // userDao.insertUser(demoUser) // 假设 insertUser 接受 UserEntity
+            // Log.d(TAG, "测试用户创建成功: ${demoUser.userId}")
+            Log.d(TAG, "createTestUser: 此方法当前被注释掉或需要检查 UserEntity 的使用。")
         } catch (e: Exception) {
             Log.e(TAG, "创建测试用户失败: ${e.message}", e)
         }
     }
+    */
 }
