@@ -118,37 +118,6 @@ fun QnaScreen(
             }
             */
             
-            // 错误消息提示
-            errorMessage?.let { error ->
-                Card(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(16.dp),
-                    colors = CardDefaults.cardColors(
-                        containerColor = MaterialTheme.colorScheme.errorContainer
-                    )
-                ) {
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(16.dp)
-                            .clickable { viewModel.clearError() },
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Icon(
-                            Icons.Filled.Error,
-                            contentDescription = null,
-                            tint = MaterialTheme.colorScheme.error
-                        )
-                        Spacer(modifier = Modifier.width(16.dp))
-                        Text(
-                            text = error,
-                            style = MaterialTheme.typography.bodyMedium
-                        )
-                    }
-                }
-            }
-            
             // 聊天消息列表
             LazyColumn(
                 modifier = Modifier
