@@ -9,7 +9,7 @@ object ApiConstants {
     const val DEEPSEEK_MODEL = "deepseek-chat" // 使用默认模型，已升级为V3
     
     // RAGFlow API 
-    const val RAGFLOW_BASE_URL = "http://10.0.2.2:9380/" // 本地RAGFlow服务地址 (模拟器)
+    const val RAGFLOW_BASE_URL = "https://frp-off.com:65008/" // 本地RAGFlow服务地址 (模拟器)
     // 注意：尝试使用标准的https协议和端口
     
     // API服务超时设置（毫秒）

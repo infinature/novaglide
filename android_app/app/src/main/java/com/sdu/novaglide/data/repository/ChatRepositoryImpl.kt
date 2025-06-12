@@ -328,6 +328,20 @@ class ChatRepositoryImpl(
             Log.d(TAG, "开始获取RAGFlow助手列表，使用新的API路径 /api/v1/chats")
             val response = ragFlowApiService.listChatAssistants(bearerToken) // <--- 修改在这里
 
+            // 新增：打印原始返回内容
+            try {
+                val rawBody = response.body()
+                Log.e(TAG, "[调试] RAGFlow助手列表-原始body: $rawBody")
+            } catch (e: Exception) {
+                Log.e(TAG, "[调试] 读取RAGFlow助手列表body时异常", e)
+            }
+            try {
+                val errorBody = response.errorBody()?.string()
+                Log.e(TAG, "[调试] RAGFlow助手列表-原始errorBody: $errorBody")
+            } catch (e: Exception) {
+                Log.e(TAG, "[调试] 读取RAGFlow助手列表errorBody时异常", e)
+            }
+
             if (response.isSuccessful) {
                 val responseBody = response.body()
                 if (responseBody != null && responseBody.containsKey("data")) {

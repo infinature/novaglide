@@ -44,7 +44,7 @@ fun ApiSettingsScreen(
         
         // 设置RagFlow初始密钥
         if (ragFlowApiKey.isEmpty()) {
-            viewModel.updateRagFlowApiKey("ragflow-RhZjEzMjlhMmZlZTExZjA4YmUyNDIwMT")
+            viewModel.updateRagFlowApiKey("ragflow-ExZjM1NmYyNDc3NDExZjBhMTIxZmVjY2")
         }
 
         // 设置RagFlow初始服务器URL
