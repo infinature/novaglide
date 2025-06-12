@@ -20,6 +20,7 @@ import com.sdu.novaglide.ui.features.profile.FavoriteArticleViewModel
 import com.sdu.novaglide.ui.features.profile.UserInfoState
 import com.sdu.novaglide.ui.features.profile.UserInfoViewModel
 import kotlinx.coroutines.launch
+import androidx.lifecycle.viewmodel.compose.viewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -29,7 +30,9 @@ fun NewsDetailScreen(
     userInfoViewModel: UserInfoViewModel,
     favoriteArticleViewModel: FavoriteArticleViewModel
 ) {
-    val article: NewsArticle? = remember(newsId) { NewsRepository.getNewsById(newsId) }
+    val newsViewModel: NewsViewModel = viewModel()
+    val newsList by newsViewModel.newsList.collectAsState()
+    val article = newsList.find { it.id == newsId }
     val currentUserState by userInfoViewModel.userInfoState.collectAsState()
     val isFavorite by favoriteArticleViewModel.isFavorite.collectAsState()
     val snackbarHostState = remember { SnackbarHostState() }

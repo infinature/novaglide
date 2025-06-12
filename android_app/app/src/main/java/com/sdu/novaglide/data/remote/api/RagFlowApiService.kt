@@ -116,4 +116,20 @@ interface RagFlowApiService {
         @Header("Authorization") bearerToken: String,
         @Query("shared_id") sharedId: String
     ): Response<Map<String, Any>>
+
+    /**
+     * 获取知识库文档元数据列表
+     * @param bearerToken RAGFlow API授权令牌（Bearer token）
+     * @param datasetId 知识库ID
+     * @param page 页码
+     * @param pageSize 每页数量
+     * @return 文档元数据列表响应
+     */
+    @GET("api/v1/datasets/{dataset_id}/documents")
+    suspend fun getDatasetDocuments(
+        @Header("Authorization") bearerToken: String,
+        @Path("dataset_id") datasetId: String,
+        @Query("page") page: Int = 1,
+        @Query("page_size") pageSize: Int = 100
+    ): Response<Map<String, Any>>
 } 
