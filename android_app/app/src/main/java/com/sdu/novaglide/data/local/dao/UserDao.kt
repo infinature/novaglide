@@ -63,4 +63,27 @@ interface UserDao {
      */
     @Query("SELECT COUNT(*) FROM users")
     suspend fun getUserCount(): Int
+
+    /**
+     * 根据用户名获取用户信息
+     */
+    @Query("SELECT * FROM users WHERE username = :username LIMIT 1")
+    suspend fun getUserByUsername(username: String): UserEntity?
+
+    /**
+     * 获取所有用户ID中数字部分最大的那个ID。
+     * 假设 userId 格式为 "U" + 数字，例如 "U000001".
+     * SUBSTR(userId, 2) 提取数字部分。
+     * CAST(SUBSTR(userId, 2) AS INTEGER) 将其转换为整数进行比较。
+     */
+    @Query("SELECT userId FROM users WHERE userId LIKE 'U%' ORDER BY CAST(SUBSTR(userId, 2) AS INTEGER) DESC LIMIT 1")
+    suspend fun getMaxUserId(): String?
+
+    // 如果需要更新用户信息（例如，在UserMapper中不处理密码时，在UserRepositoryImpl中更新）
+    // @Update
+    // suspend fun updateUser(user: UserEntity)
+
+    // 如果需要Flow版本的getUserById (之前在UserRepositoryImpl中被注释掉了)
+    // @Query("SELECT * FROM users WHERE userId = :userId")
+    // fun getUserByIdAsFlow(userId: String): Flow<UserEntity?>
 }

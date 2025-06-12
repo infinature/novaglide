@@ -215,8 +215,7 @@ fun NovaGlideApp(
     }
     
     AppNavigation(
-        startDestination = AppRoute.HOME,
         chatRepository = chatRepository,
         apiKeyStore = apiKeyStore
     )
-} 
+}

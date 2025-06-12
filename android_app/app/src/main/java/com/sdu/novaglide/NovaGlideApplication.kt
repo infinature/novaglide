@@ -44,18 +44,18 @@ class NovaGlideApplication : Application() {
         applicationScope.launch(Dispatchers.IO) {
             try {
                 Log.d(TAG, "开始初始化数据库")
-                // 触发数据库的懒加载初始化
                 val db = database
                 
-                // 检查是否有用户数据，没有则创建测试用户
-                // 这部分可能是多余的，因为Room的Callback会在创建数据库时自动插入测试用户
-                // 但保留这个逻辑作为双重保险
                 val user = userDao.getCurrentUser()
                 Log.d(TAG, "检查用户数据: ${if (user == null) "未找到用户" else "找到用户 ${user.userId}"}")
                 
+                // 如果您希望从一个干净的数据库开始，并且第一个注册用户是 U000001，
+                // 可以考虑注释掉 createTestUser() 的调用。
+                // 或者，如果 AppDatabase 的 Room.databaseBuilder().addCallback 中有预填充逻辑，
+                // 也需要检查那里的 userId 是否符合新规则。
                 if (user == null) {
-                    Log.d(TAG, "未找到用户数据，创建测试用户")
-                    createTestUser()
+                    Log.d(TAG, "未找到用户数据，考虑是否创建测试用户或依赖注册流程。")
+                    // createTestUser() // <--- 考虑是否需要这个测试用户
                 }
                 
                 Log.d(TAG, "数据库初始化完成")
@@ -66,10 +66,13 @@ class NovaGlideApplication : Application() {
     }
     
     private suspend fun createTestUser() {
+        // 如果保留此方法，请确保 userId "U12345678" 不会与新的 "U%06d" 格式冲突，
+        // 或者修改它以适应新格式，例如，如果这是唯一的预置用户，可以设为 "U000000" 或其他特殊值。
+        // 为了确保第一个注册用户是 U000001，最好在数据库为空时，不创建此测试用户。
         try {
             val currentTime = System.currentTimeMillis()
             val demoUser = UserEntity(
-                userId = "U12345678",
+                userId = "U12345678", // 这个ID与新的自增逻辑可能不兼容
                 username = "student2024",
                 nickname = "学习达人",
                 email = "student2024@example.com",
@@ -80,10 +83,12 @@ class NovaGlideApplication : Application() {
                 lastLoginDate = Date(currentTime),
                 eduLevel = "本科",
                 institution = "山东大学",
-                graduationYear = 2025
+                graduationYear = 2025,
+                password = "password123"
             )
-            userDao.insertUser(demoUser)
-            Log.d(TAG, "测试用户创建成功: ${demoUser.userId}")
+            // userDao.insertUser(demoUser)
+            // Log.d(TAG, "测试用户创建成功: ${demoUser.userId}，密码: ${demoUser.password}")
+            Log.d(TAG, "createTestUser: 已被注释或需要调整以适应新的userId逻辑。")
         } catch (e: Exception) {
             Log.e(TAG, "创建测试用户失败: ${e.message}", e)
         }

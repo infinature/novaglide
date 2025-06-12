@@ -14,63 +14,32 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.lifecycle.viewmodel.compose.viewModel
-import com.sdu.novaglide.NovaGlideApplication
 import com.sdu.novaglide.domain.model.UserInfo
 import java.text.SimpleDateFormat
 import java.util.*
 
-private const val TAG = "UserInfoScreen"
+private const val TAG_SCREEN = "UserInfoScreen"
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun UserInfoScreen(
+    viewModel: UserInfoViewModel, // 接收共享的 ViewModel 作为参数
     onNavigateBack: () -> Unit
 ) {
-    val TAG = "UserInfoScreen"
-    
-    // 获取应用上下文以访问UserDao
-    val context = LocalContext.current
-    val application = context.applicationContext as NovaGlideApplication
-    
-    // 在使用userDao前检查数据库是否初始化
-    val userDao = try {
-        application.userDao
-    } catch (e: Exception) {
-        Log.e(TAG, "获取UserDao失败: ${e.message}", e)
-        null
-    }
-    
-    // 检查DAO是否可用
-    if (userDao == null) {
-        Box(
-            modifier = Modifier.fillMaxSize(),
-            contentAlignment = Alignment.Center
-        ) {
-            Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                Text("数据库初始化失败", color = Color.Red)
-                Spacer(modifier = Modifier.height(16.dp))
-                Button(onClick = onNavigateBack) {
-                    Text("返回")
-                }
-            }
-        }
-        return
-    }
-    
-    // 创建ViewModel
-    val viewModel: UserInfoViewModel = viewModel(factory = UserInfoViewModel.Factory(userDao))
-    
     val userInfoState by viewModel.userInfoState.collectAsState()
     val dateFormat = remember { SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()) }
 
     // 获取用户数据
-    LaunchedEffect(Unit) {
-        viewModel.loadCurrentUserInfo()
+    LaunchedEffect(userInfoState) { // 观察 userInfoState
+        if (userInfoState !is UserInfoState.Success && userInfoState !is UserInfoState.Loading) {
+            Log.d(TAG_SCREEN, "UserInfoScreen: userInfoState 不是 Success 或 Loading，尝试加载当前用户信息。")
+            viewModel.loadCurrentUserInfo()
+        } else if (userInfoState is UserInfoState.Success) {
+            Log.d(TAG_SCREEN, "UserInfoScreen: userInfoState 已经是 Success，用户: ${(userInfoState as UserInfoState.Success).userInfo.username}")
+        }
     }
 
     Scaffold(
@@ -104,11 +73,13 @@ fun UserInfoScreen(
         ) {
             when (val state = userInfoState) {
                 is UserInfoState.Loading -> {
+                    Log.d(TAG_SCREEN, "UserInfoScreen: 显示加载中...")
                     CircularProgressIndicator(
                         modifier = Modifier.align(Alignment.Center)
                     )
                 }
                 is UserInfoState.Error -> {
+                    Log.e(TAG_SCREEN, "UserInfoScreen: 显示错误 - ${state.message}")
                     Column(
                         modifier = Modifier
                             .align(Alignment.Center)
@@ -121,7 +92,10 @@ fun UserInfoScreen(
                         )
                         Spacer(modifier = Modifier.height(16.dp))
                         Button(
-                            onClick = { viewModel.loadCurrentUserInfo() },
+                            onClick = { 
+                                Log.d(TAG_SCREEN, "UserInfoScreen: 点击重试按钮")
+                                viewModel.loadCurrentUserInfo() 
+                            },
                             modifier = Modifier.padding(top = 16.dp)
                         ) {
                             Text("重试")
@@ -129,6 +103,7 @@ fun UserInfoScreen(
                     }
                 }
                 is UserInfoState.Success -> {
+                    Log.d(TAG_SCREEN, "UserInfoScreen: 显示成功，用户: ${state.userInfo.username}")
                     UserInfoContent(userData = state.userInfo, dateFormat = dateFormat)
                 }
             }

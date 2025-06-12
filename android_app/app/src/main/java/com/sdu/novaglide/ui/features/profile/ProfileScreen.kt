@@ -30,13 +30,29 @@ fun ProfileScreen(
     onNavigateToUserInfo: () -> Unit,
     viewModel: UserInfoViewModel,
     onNavigateToHome: () -> Unit,
-    onNavigateToChat: () -> Unit
+    onNavigateToChat: () -> Unit,
+    onNavigateToLogout: () -> Unit, // 新增登出回调
+    onNavigateToEditUserInfo: () -> Unit // 新增导航到编辑页面的回调
 ) {
     val userInfoState by viewModel.userInfoState.collectAsState()
 
-    // 当 ProfileScreen 可见时，加载或刷新用户信息
-    LaunchedEffect(Unit) {
-        viewModel.loadCurrentUserInfo()
+    // 修改 LaunchedEffect 逻辑
+    // 只有当 userInfoState 不是 Success 状态，且不是 Loading 状态时，
+    // 才考虑加载当前用户（例如应用启动直接进入此页面，或从后台恢复）
+    // 如果是通过登录流程导航到此页面，userInfoState 应该已经是 Success 状态。
+    LaunchedEffect(userInfoState) { // 观察 userInfoState 的变化
+        if (userInfoState !is UserInfoState.Success && userInfoState !is UserInfoState.Loading) {
+            // 避免在登录成功后立即覆盖 userInfoState
+            // 如果需要处理应用启动直接进入 Profile 页的场景，
+            // 可以在 ViewModel 初始化时或此处进行一次加载。
+            // 但要确保这个加载不会覆盖登录成功设置的状态。
+            // 一个更安全的做法是，如果 viewModel.userInfoState 初始为 Loading 或 Error，
+            // 并且没有正在进行的登录操作，才执行 loadCurrentUserInfo。
+            // 此处简化为：如果不是Success也不是Loading，则尝试加载。
+            // 这假设ViewModel的初始状态可能是Loading，然后变为Error或Success。
+            // 如果直接进入此页面，userInfoState可能是初始的Loading或Error。
+            viewModel.loadCurrentUserInfo()
+        }
     }
 
     Scaffold(
@@ -131,8 +147,8 @@ fun ProfileScreen(
             ) {
                 ProfileMenuItem(icon = Icons.Filled.Favorite, title = "我的收藏", onClick = { /* TODO */ })
                 ProfileMenuItem(icon = Icons.Filled.History, title = "浏览历史", onClick = { /* TODO */ })
-                ProfileMenuItem(icon = Icons.Filled.Settings, title = "偏好设置", onClick = { /* TODO */ })
-                ProfileMenuItem(icon = Icons.Filled.ExitToApp, title = "退出登录", onClick = { /* TODO */ })
+                ProfileMenuItem(icon = Icons.Filled.Edit, title = "信息编辑", onClick = onNavigateToEditUserInfo) // 修改标题和onClick
+                ProfileMenuItem(icon = Icons.Filled.ExitToApp, title = "退出登录", onClick = onNavigateToLogout)
             }
         }
     }

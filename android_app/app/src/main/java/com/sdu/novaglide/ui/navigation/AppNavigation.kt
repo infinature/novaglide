@@ -23,15 +23,19 @@ import com.sdu.novaglide.ui.features.qna.QnaScreen
 import com.sdu.novaglide.ui.features.qna.QnaViewModel
 import com.sdu.novaglide.ui.features.home.HomeScreen
 import com.sdu.novaglide.ui.features.profile.ProfileScreen
-import com.sdu.novaglide.ui.features.profile.UserInfoScreen
+import com.sdu.novaglide.ui.features.profile.EditUserInfoScreen // 导入新的编辑屏幕
+import com.sdu.novaglide.ui.features.profile.UserInfoScreen // 确保导入
 import com.sdu.novaglide.ui.features.profile.UserInfoViewModel
 import androidx.compose.ui.platform.LocalContext
-import com.sdu.novaglide.core.database.AppDatabase
+// import com.sdu.novaglide.core.database.AppDatabase // AppDatabase 通常不直接在此使用
 import com.sdu.novaglide.data.repository.UserRepositoryImpl
 import com.sdu.novaglide.data.repository.UserRepository
 import com.sdu.novaglide.NovaGlideApplication
+import com.sdu.novaglide.ui.features.auth.LoginScreen
+import androidx.navigation.NavGraph.Companion.findStartDestination
+import com.sdu.novaglide.ui.features.auth.RegisterScreen
 
-private const val TAG = "AppNavigation"
+private const val TAG_NAV = "AppNavigation" // 修改TAG名称
 
 /**
  * 应用导航路由
@@ -43,7 +47,10 @@ object AppRoute {
     const val PROFILE = "profile"
     const val NEWS = "news"
     const val USER_INFO = "user_info"
+    const val EDIT_USER_INFO = "edit_user_info" // 新增编辑用户信息路由
     const val NEWS_DETAIL = "news_detail"
+    const val LOGIN = "login"
+    const val REGISTER = "register"
 }
 
 /**
@@ -53,16 +60,14 @@ object AppRoute {
 fun AppNavigation(
     modifier: Modifier = Modifier,
     navController: NavHostController = rememberNavController(),
-    startDestination: String = AppRoute.HOME,
+    startDestination: String = AppRoute.LOGIN, // 确保这里是 LOGIN
     chatRepository: ChatRepository,
     apiKeyStore: ApiKeyStore
 ) {
     val context = LocalContext.current
-    // 创建视图模型实例
     val qnaViewModel = remember { QnaViewModel(chatRepository, apiKeyStore) }
     val apiSettingsViewModel = remember { ApiSettingsViewModel(apiKeyStore) }
     
-    // 创建 UserRepository 和 UserInfoViewModel
     val userInfoViewModel = remember {
         val application = context.applicationContext as NovaGlideApplication
         val userDao = application.userDao
@@ -71,7 +76,7 @@ fun AppNavigation(
     } 
     
     LaunchedEffect(key1 = Unit) {
-        Log.d(TAG, "AppNavigation 初始化完成，开始导航至: $startDestination")
+        Log.d(TAG_NAV, "AppNavigation 初始化完成，开始导航至: $startDestination")
     }
     
     NavHost(
@@ -112,27 +117,51 @@ fun AppNavigation(
             ProfileScreen(
                 onNavigateBack = { navController.popBackStack() },
                 onNavigateToUserInfo = { navController.navigate(AppRoute.USER_INFO) },
-                viewModel = userInfoViewModel,
+                viewModel = userInfoViewModel, 
                 onNavigateToHome = {
                     navController.navigate(AppRoute.HOME) {
                         launchSingleTop = true
+                        // Pop up to the start destination of the graph to
+                        // avoid building up a large stack of destinations
+                        // on the back stack as users select items
+                        popUpTo(navController.graph.findStartDestination().id) {
+                            saveState = true
+                        }
                     }
                 },
                 onNavigateToChat = {
                     navController.navigate(AppRoute.QNA) {
-                        popUpTo(navController.graph.startDestinationId) {
+                        popUpTo(navController.graph.findStartDestination().id) {
                             saveState = true
                         }
                         launchSingleTop = true
                         restoreState = true
                     }
-                }
+                },
+                onNavigateToLogout = {
+                    navController.navigate(AppRoute.LOGIN) {
+                        popUpTo(navController.graph.findStartDestination().id) {
+                            inclusive = true
+                        }
+                        launchSingleTop = true 
+                    }
+                },
+                onNavigateToEditUserInfo = { navController.navigate(AppRoute.EDIT_USER_INFO) } // 添加导航
             )
         }
 
         // 用户信息详情页
         composable(AppRoute.USER_INFO) {
             UserInfoScreen(
+                viewModel = userInfoViewModel, // 传递共享的 ViewModel
+                onNavigateBack = { navController.popBackStack() }
+            )
+        }
+
+        // 新增：编辑用户信息页
+        composable(AppRoute.EDIT_USER_INFO) {
+            EditUserInfoScreen(
+                viewModel = userInfoViewModel,
                 onNavigateBack = { navController.popBackStack() }
             )
         }
@@ -150,13 +179,47 @@ fun AppNavigation(
                 onNavigateBack = { navController.popBackStack() }
             )
         }
+
+        // 新增登录页路由
+        composable(AppRoute.LOGIN) {
+            LoginScreen(
+                viewModel = userInfoViewModel, // Pass shared ViewModel
+                onNavigateToHome = {
+                    navController.navigate(AppRoute.HOME) {
+                        popUpTo(AppRoute.LOGIN) {
+                            inclusive = true
+                        }
+                        launchSingleTop = true
+                    }
+                },
+                onNavigateToRegister = { 
+                    navController.navigate(AppRoute.REGISTER)
+                }
+            )
+        }
+
+        // 新增注册页路由
+        composable(AppRoute.REGISTER) {
+            RegisterScreen(
+                viewModel = userInfoViewModel, // Pass shared ViewModel
+                onNavigateToLogin = {
+                    navController.navigate(AppRoute.LOGIN) {
+                        popUpTo(AppRoute.REGISTER) { inclusive = true } 
+                        launchSingleTop = true 
+                    }
+                },
+                onNavigateBack = {
+                    navController.popBackStack()
+                }
+            )
+        }
     }
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun HomeScreen(onNavigate: (String) -> Unit) {
-    Log.d(TAG, "渲染旧的HomeScreen (AppNavigation 内定义)")
+    Log.d(TAG_NAV, "渲染旧的HomeScreen (AppNavigation 内定义)")
     
     Column(
         modifier = Modifier.fillMaxSize(),
@@ -277,4 +340,4 @@ fun TemporaryScreen(title: String, onNavigateBack: () -> Unit) {
             }
         }
     }
-} 
+}

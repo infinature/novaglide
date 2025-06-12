@@ -21,5 +21,6 @@ data class UserEntity(
     val lastLoginDate: Date,
     val eduLevel: String,
     val institution: String,
-    val graduationYear: Int?
+    val graduationYear: Int?,
+    val password: String // 新增密码字段
 )
