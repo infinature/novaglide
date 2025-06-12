@@ -15,54 +15,65 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.sdu.novaglide.ui.features.home.NewsArticle // From NewsData.kt
 import com.sdu.novaglide.ui.features.profile.FavoriteArticleViewModel
 import com.sdu.novaglide.ui.features.profile.UserInfoState
 import com.sdu.novaglide.ui.features.profile.UserInfoViewModel
-import com.sdu.novaglide.ui.features.home.NewsArticle // 确保导入 NewsArticle from NewsData.kt
+import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun NewsDetailScreen(
     newsId: String?,
-    userInfoViewModel: UserInfoViewModel, // 获取当前用户ID
-    favoriteArticleViewModel: FavoriteArticleViewModel, // 处理收藏逻辑
-    onNavigateBack: () -> Unit
+    onNavigateBack: () -> Unit,
+    userInfoViewModel: UserInfoViewModel,
+    favoriteArticleViewModel: FavoriteArticleViewModel
 ) {
-    // article 现在应该通过 NewsRepository.getNewsById(newsId) 获取
-    val article = remember(newsId) { NewsRepository.getNewsById(newsId) } // 使用 NewsData.kt 中的 NewsRepository
+    val article: NewsArticle? = remember(newsId) { NewsRepository.getNewsById(newsId) }
     val currentUserState by userInfoViewModel.userInfoState.collectAsState()
     val isFavorite by favoriteArticleViewModel.isFavorite.collectAsState()
+    val snackbarHostState = remember { SnackbarHostState() }
+    val coroutineScope = rememberCoroutineScope()
 
-    LaunchedEffect(key1 = newsId, key2 = currentUserState) {
-        if (newsId != null && currentUserState is UserInfoState.Success) {
-            val userId = (currentUserState as UserInfoState.Success).userInfo.userId
-            favoriteArticleViewModel.checkIfFavorite(userId, newsId)
+    LaunchedEffect(key1 = article, key2 = currentUserState) {
+        article?.let { currentArticle ->
+            if (currentUserState is UserInfoState.Success) {
+                val userId = (currentUserState as UserInfoState.Success).userInfo.userId
+                favoriteArticleViewModel.checkIfFavorite(userId, currentArticle.id)
+            }
         }
     }
 
     Scaffold(
+        snackbarHost = { SnackbarHost(snackbarHostState) },
         topBar = {
             TopAppBar(
-                title = { Text(article.title, maxLines = 1, overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis) },
+                title = { Text(article?.title ?: "资讯详情") },
                 navigationIcon = {
                     IconButton(onClick = onNavigateBack) {
                         Icon(Icons.Filled.ArrowBack, contentDescription = "返回")
                     }
                 },
                 actions = {
-                    if (article != null && currentUserState is UserInfoState.Success) {
-                        val userId = (currentUserState as UserInfoState.Success).userInfo.userId
+                    article?.let { currentArticle ->
                         IconButton(onClick = {
-                            if (isFavorite) {
-                                favoriteArticleViewModel.removeFavorite(userId, article.title)
+                            if (currentUserState is UserInfoState.Success) {
+                                val userId = (currentUserState as UserInfoState.Success).userInfo.userId
+                                if (isFavorite) {
+                                    favoriteArticleViewModel.removeFavorite(userId, currentArticle.id)
+                                } else {
+                                    favoriteArticleViewModel.addFavorite(userId, currentArticle.id, currentArticle.title)
+                                }
                             } else {
-                                favoriteArticleViewModel.addFavorite(userId, article.title, article.title)
+                                coroutineScope.launch {
+                                    snackbarHostState.showSnackbar("请先登录")
+                                }
                             }
                         }) {
                             Icon(
                                 imageVector = if (isFavorite) Icons.Filled.Favorite else Icons.Filled.FavoriteBorder,
-                                contentDescription = if (isFavorite) "取消收藏" else "收藏",
-                                tint = if (isFavorite) Color.Red else LocalContentColor.current
+                                contentDescription = "收藏",
+                                tint = if (isFavorite) MaterialTheme.colorScheme.primary else Color.Gray
                             )
                         }
                     }
@@ -70,32 +81,39 @@ fun NewsDetailScreen(
             )
         }
     ) { paddingValues ->
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(paddingValues)
-                .padding(horizontal = 16.dp, vertical = 8.dp)
-                .verticalScroll(rememberScrollState()) // 使内容可滚动
-        ) {
-            Text(
-                text = article.title,
-                fontSize = 22.sp,
-                fontWeight = FontWeight.Bold,
-                modifier = Modifier.padding(bottom = 16.dp)
-            )
-            
-            Text(
-                text = article.content,
-                fontSize = 16.sp,
-                lineHeight = 24.sp // 增加行高以提高可读性
-            )
-            
-            Spacer(modifier = Modifier.height(16.dp))
-            Text(
-                text = "资讯ID: ${newsId ?: "未知"}",
-                fontSize = 12.sp,
-                color = Color.Gray
-            )
+        if (article == null) {
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(paddingValues),
+                contentAlignment = Alignment.Center
+            ) {
+                if (newsId.isNullOrEmpty()) {
+                    Text("未指定资讯。")
+                } else {
+                    Text("资讯加载失败或未找到。")
+                }
+            }
+        } else {
+            Column(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(paddingValues)
+                    .padding(16.dp)
+                    .verticalScroll(rememberScrollState())
+            ) {
+                Text(
+                    text = article.title,
+                    style = MaterialTheme.typography.headlineSmall,
+                    fontWeight = FontWeight.Bold,
+                    modifier = Modifier.padding(bottom = 8.dp)
+                )
+                Text(
+                    text = article.content,
+                    style = MaterialTheme.typography.bodyLarge,
+                    lineHeight = 24.sp
+                )
+            }
         }
     }
 }
