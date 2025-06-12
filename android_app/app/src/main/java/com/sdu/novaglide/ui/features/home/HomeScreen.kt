@@ -35,14 +35,14 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 fun HomeScreen(
     userInfoViewModel: UserInfoViewModel,
     browsingHistoryViewModel: BrowsingHistoryViewModel, // Receive BrowsingHistoryViewModel
+    newsViewModel: NewsViewModel,
     onNavigateToQna: () -> Unit,
     onNavigateToProfile: () -> Unit,
     onNavigateToNewsDetail: (String) -> Unit
 ) {
-    val viewModel: NewsViewModel = viewModel()
-    val newsList by viewModel.newsList.collectAsState()
+    val newsList by newsViewModel.newsList.collectAsState()
     LaunchedEffect(Unit) {
-        viewModel.fetchNews()
+        newsViewModel.fetchNews()
     }
     var selectedTabIndex by remember { mutableStateOf(0) }
     val tabs = listOf("保研", "考研", "留学", "考公", "推荐")

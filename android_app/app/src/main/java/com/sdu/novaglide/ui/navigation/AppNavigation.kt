@@ -38,6 +38,7 @@ import com.sdu.novaglide.ui.features.auth.LoginScreen // 确保 LoginScreen 导�
 import androidx.navigation.NavGraph.Companion.findStartDestination // 确保 findStartDestination 导入正确
 import com.sdu.novaglide.ui.features.auth.RegisterScreen // 确保 RegisterScreen 导入正确
 import com.sdu.novaglide.ui.features.home.NewsDetailScreen // 确保 NewsDetailScreen 导入正确
+import com.sdu.novaglide.ui.features.home.NewsViewModel
 
 private const val TAG_NAV = "AppNavigation"
 
@@ -90,6 +91,9 @@ fun AppNavigation(
         FavoriteArticleViewModel.Factory(application.favoriteArticleRepository).create(FavoriteArticleViewModel::class.java)
     }
 
+    // NewsViewModel 单例
+    val newsViewModel: NewsViewModel = remember { NewsViewModel() }
+
     LaunchedEffect(key1 = Unit) {
         Log.d(TAG_NAV, "AppNavigation 初始化完成，开始导航至: $startDestination")
     }
@@ -101,9 +105,10 @@ fun AppNavigation(
     ) {
         // 首页
         composable(AppRoute.HOME) {
-            HomeScreen( // 使用正确的 HomeScreen Composable 名称
+            HomeScreen(
                 userInfoViewModel = actualUserInfoViewModel,
                 browsingHistoryViewModel = browsingHistoryViewModel,
+                newsViewModel = newsViewModel,
                 onNavigateToQna = { navController.navigate(AppRoute.QNA) },
                 onNavigateToProfile = { navController.navigate(AppRoute.PROFILE) },
                 onNavigateToNewsDetail = { newsId ->
@@ -221,8 +226,9 @@ fun AppNavigation(
             val newsId = backStackEntry.arguments?.getString("newsId")
             NewsDetailScreen(
                 newsId = newsId,
-                userInfoViewModel = actualUserInfoViewModel, // 传递 UserInfoViewModel
-                favoriteArticleViewModel = favoriteArticleViewModel, // 传递 FavoriteArticleViewModel
+                userInfoViewModel = actualUserInfoViewModel,
+                favoriteArticleViewModel = favoriteArticleViewModel,
+                newsViewModel = newsViewModel,
                 onNavigateBack = { navController.popBackStack() }
             )
         }

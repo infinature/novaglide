@@ -28,11 +28,14 @@ fun NewsDetailScreen(
     newsId: String?,
     onNavigateBack: () -> Unit,
     userInfoViewModel: UserInfoViewModel,
-    favoriteArticleViewModel: FavoriteArticleViewModel
+    favoriteArticleViewModel: FavoriteArticleViewModel,
+    newsViewModel: NewsViewModel
 ) {
-    val newsViewModel: NewsViewModel = viewModel()
     val newsList by newsViewModel.newsList.collectAsState()
+    println("详情页 newsId: $newsId")
+    println("newsList: $newsList")
     val article = newsList.find { it.id == newsId }
+    println("详情页找到的article: $article")
     val currentUserState by userInfoViewModel.userInfoState.collectAsState()
     val isFavorite by favoriteArticleViewModel.isFavorite.collectAsState()
     val snackbarHostState = remember { SnackbarHostState() }
@@ -84,7 +87,16 @@ fun NewsDetailScreen(
             )
         }
     ) { paddingValues ->
-        if (article == null) {
+        if (newsList.isEmpty()) {
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(paddingValues),
+                contentAlignment = Alignment.Center
+            ) {
+                CircularProgressIndicator()
+            }
+        } else if (article == null) {
             Box(
                 modifier = Modifier
                     .fillMaxSize()
