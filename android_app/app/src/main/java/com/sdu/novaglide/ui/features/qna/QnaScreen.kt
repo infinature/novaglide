@@ -242,10 +242,9 @@ fun DomainMessageItem(message: com.sdu.novaglide.domain.model.ChatMessage) {
     ) {
         if (message.role != com.sdu.novaglide.domain.model.MessageRole.USER) {
             Text(
-                text = if (message.role == com.sdu.novaglide.domain.model.MessageRole.ASSISTANT) "秦媛" else "系统",
-                fontSize = 12.sp,
-                color = Color.Gray,
-                modifier = Modifier.padding(bottom = 4.dp)
+                modifier = Modifier.padding(bottom = 4.dp),
+                text = if (message.role == com.sdu.novaglide.domain.model.MessageRole.ASSISTANT) "规划小助手" else "系统",
+                style = MaterialTheme.typography.labelSmall
             )
         }
         

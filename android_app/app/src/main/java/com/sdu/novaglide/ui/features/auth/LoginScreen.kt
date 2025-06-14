@@ -66,16 +66,10 @@ fun LoginScreen(
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
             Text(
-                text = "欢迎回来",
-                fontSize = 24.sp,
+                text = "欢迎使用NovaGlide职业生涯规划系统",
+                fontSize = 20.sp,
                 fontWeight = FontWeight.Bold,
                 color = MaterialTheme.colorScheme.primary
-            )
-            Spacer(modifier = Modifier.height(8.dp))
-            Text(
-                text = "请输入您的凭据以继续",
-                fontSize = 16.sp,
-                color = Color.Gray
             )
 
             Spacer(modifier = Modifier.height(32.dp))
