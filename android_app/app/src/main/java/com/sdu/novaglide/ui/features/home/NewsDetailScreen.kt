@@ -161,9 +161,17 @@ fun NewsDetailScreen(
                     )
                 }
                 is ContentState.Success -> {
-                    val htmlContent = remember(state.content) {
+                    val processedContent = remember(state.content) {
+                        // Pre-process the content to fix list formatting.
+                        // This specifically targets patterns like **1.** and converts them to "1. ",
+                        // making it a standard Markdown ordered list.
+                        state.content.replace(Regex("""\*\*(\d+)\.\*\* ?""")) { matchResult ->
+                            "${matchResult.groupValues[1]}. "
+                        }
+                    }
+                    val htmlContent = remember(processedContent) {
                         // Escape the content for JavaScript
-                        val escapedContent = state.content
+                        val escapedContent = processedContent
                             .replace("\\", "\\\\")
                             .replace("'", "\\'")
                             .replace("\"", "\\\"")
@@ -175,17 +183,48 @@ fun NewsDetailScreen(
                         <html>
                         <head>
                             <meta name="viewport" content="width=device-width, initial-scale=1.0">
-                            <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+                            
+                            <!-- Markdown Style -->
+                            <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/github-markdown-css/5.8.1/github-markdown-light.min.css">
+                            
+                            <!-- Syntax Highlighting Style -->
+                            <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github.min.css">
+                            
                             <style>
-                                body { margin: 16px; font-family: sans-serif; word-wrap: break-word; }
-                                code { background-color: #f0f0f0; padding: 2px 4px; border-radius: 4px; }
-                                pre { background-color: #f0f0f0; padding: 16px; border-radius: 8px; overflow-x: auto; }
-                                img { max-width: 100%; height: auto; }
+                                .markdown-body {
+                                    box-sizing: border-box;
+                                    min-width: 200px;
+                                    max-width: 980px;
+                                    margin: 0 auto;
+                                    padding: 45px;
+                                }
+
+                                @media (max-width: 767px) {
+                                    .markdown-body {
+                                        padding: 15px;
+                                    }
+                                }
                             </style>
                         </head>
                         <body>
-                            <div id="content"></div>
+                            <div id="content" class="markdown-body"></div>
+
+                            <!-- Markdown Parser -->
+                            <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+                            
+                            <!-- Syntax Highlighter -->
+                            <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
+
                             <script>
+                                // Configure marked to use highlight.js
+                                marked.setOptions({
+                                  highlight: function(code, lang) {
+                                    const language = hljs.getLanguage(lang) ? lang : 'plaintext';
+                                    return hljs.highlight(code, { language }).value;
+                                  }
+                                });
+
+                                // Parse and render the content
                                 document.getElementById('content').innerHTML = marked.parse('$escapedContent');
                             </script>
                         </body>
