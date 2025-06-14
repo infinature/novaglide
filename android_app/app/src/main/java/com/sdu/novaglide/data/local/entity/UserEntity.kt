@@ -22,5 +22,6 @@ data class UserEntity(
     val eduLevel: String,
     val institution: String,
     val graduationYear: Int?,
-    val password: String // 新增密码字段
+    val password: String, // 新增密码字段
+    val isLoggedIn: Boolean = false // 新增登录状态标志位，默认为 false
 )

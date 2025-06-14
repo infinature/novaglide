@@ -129,6 +129,16 @@ fun HomeScreen(
                 )
                 
                 // 二级标题
+                // 如果这里或附近有显示用户信息的逻辑，需要处理 currentUserState
+                // 例如：
+                // if (currentUserState is UserInfoState.Success) {
+                //     Text("欢迎, ${(currentUserState as UserInfoState.Success).userInfo.nickname}")
+                // } else if (currentUserState is UserInfoState.Loading) {
+                //     Text("加载用户信息中...")
+                // } else {
+                //     Text("资讯标题") // 默认或未登录状态
+                // }
+                // 从现有代码看，这里只是一个静态标题 "资讯标题"
                 Text(
                     text = "资讯标题",
                     fontSize = 18.sp,
@@ -153,11 +163,12 @@ fun HomeScreen(
                 .fillMaxSize()
                 .padding(horizontal = 16.dp)
         ) {
-            // 使用从 NewsRepository 获取的新闻列表
-            items(displayedNewsItems, key = { it.id }) { newsArticle -> // 改为 newsArticle
-                NewsCard( // NewsCard 现在接收 NewsArticle
+            items(displayedNewsItems, key = { it.id }) { newsArticle -> 
+                NewsCard( 
                     newsArticle = newsArticle,
                     onClick = {
+                        // 当用户登出后，currentUserState 会是 UserInfoState.Error
+                        // 此时不应该尝试记录浏览历史，因为没有有效的 userId
                         if (currentUserState is UserInfoState.Success) {
                             val userId = (currentUserState as UserInfoState.Success).userInfo.userId
                             browsingHistoryViewModel.addBrowsingHistory(userId, newsArticle.id, newsArticle.title)

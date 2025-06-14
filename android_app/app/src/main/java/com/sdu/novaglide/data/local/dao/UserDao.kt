@@ -35,9 +35,9 @@ interface UserDao {
     fun getUserByIdAsFlow(userId: String): Flow<UserEntity?>
     
     /**
-     * 获取当前用户（限制为1条记录）
+     * 获取当前用户（查询 isLoggedIn = 1 的用户）
      */
-    @Query("SELECT * FROM users LIMIT 1")
+    @Query("SELECT * FROM users WHERE isLoggedIn = 1 LIMIT 1") // 修改查询条件
     suspend fun getCurrentUser(): UserEntity?
     
     /**
@@ -78,6 +78,18 @@ interface UserDao {
      */
     @Query("SELECT userId FROM users WHERE userId LIKE 'U%' ORDER BY CAST(SUBSTR(userId, 2) AS INTEGER) DESC LIMIT 1")
     suspend fun getMaxUserId(): String?
+
+    /**
+     * 更新指定用户的登录状态
+     */
+    @Query("UPDATE users SET isLoggedIn = :isLoggedIn WHERE userId = :userId")
+    suspend fun updateLoginStatus(userId: String, isLoggedIn: Boolean)
+
+    /**
+     * 将所有用户的登录状态isLoggedIn设置为false
+     */
+    @Query("UPDATE users SET isLoggedIn = 0") // 0 代表 false
+    suspend fun clearAllLoginStatus()
 
     // 如果需要更新用户信息（例如，在UserMapper中不处理密码时，在UserRepositoryImpl中更新）
     // @Update

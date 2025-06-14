@@ -62,7 +62,7 @@ class UserInfoViewModel(
     private val TAG = "UserInfoViewModel"
     
     // 用户信息状态Flow
-    private val _userInfoState = MutableStateFlow<UserInfoState>(UserInfoState.Loading)
+    private val _userInfoState = MutableStateFlow<UserInfoState>(UserInfoState.Loading) // 初始可以是Loading
     val userInfoState: StateFlow<UserInfoState> = _userInfoState
 
     // 登录状态Flow
@@ -83,10 +83,10 @@ class UserInfoViewModel(
     fun loadCurrentUserInfo() {
         viewModelScope.launch {
             try {
-                Log.d(TAG, "开始加载当前用户信息")
+                Log.d(TAG, "开始加载当前用户信息 (isLoggedIn=true)")
                 _userInfoState.value = UserInfoState.Loading
                 
-                userRepository.getCurrentUserInfo()
+                userRepository.getCurrentUserInfo() // 这个方法现在会获取 isLoggedIn = true 的用户
                     .catch { exception -> 
                         Log.e(TAG, "加载用户数据出错: ${exception.message}", exception)
                         _userInfoState.value = UserInfoState.Error(exception.message ?: "加载用户数据时出错") 
@@ -96,11 +96,11 @@ class UserInfoViewModel(
                             result.isSuccess -> {
                                 val userInfo = result.getOrNull()
                                 if (userInfo != null) {
-                                    Log.d(TAG, "成功加载用户: ${userInfo.userId}")
+                                    Log.d(TAG, "成功加载已登录用户: ${userInfo.userId}")
                                     _userInfoState.value = UserInfoState.Success(userInfo)
                                 } else {
-                                    Log.w(TAG, "用户数据为空")
-                                    _userInfoState.value = UserInfoState.Error("用户数据为空")
+                                    Log.w(TAG, "没有找到已登录的用户 (isLoggedIn=true)")
+                                    _userInfoState.value = UserInfoState.Error("用户未登录或会话已过期")
                                 }
                             }
                             else -> {
@@ -162,8 +162,9 @@ class UserInfoViewModel(
                 val userInfo = userRepository.login(username, password)
                 if (userInfo != null) {
                     Log.d(TAG, "ViewModel: 登录成功，用户: ${userInfo.username}")
+                    // 登录成功后，将该用户的 isLoggedIn 状态更新为 true
+                    userRepository.updateLoginStatus(userInfo.userId, true)
                     _loginState.value = LoginResult.Success(userInfo)
-                    // 登录成功后，可以考虑也更新 _userInfoState 以便ProfileScreen等界面能获取到最新登录用户
                     _userInfoState.value = UserInfoState.Success(userInfo)
                 } else {
                     Log.w(TAG, "ViewModel: 登录失败，用户名或密码错误: $username")
@@ -181,6 +182,41 @@ class UserInfoViewModel(
      */
     fun resetLoginState() {
         _loginState.value = LoginResult.Idle
+    }
+
+    /**
+     * 用户登出
+     */
+    fun logout() {
+        viewModelScope.launch {
+            Log.d(TAG, "ViewModel: 开始登出")
+            val currentState = _userInfoState.value
+            val userIdToLogout: String? = if (currentState is UserInfoState.Success) {
+                currentState.userInfo.userId
+            } else {
+                // 如果当前状态不是Success, 可能意味着用户状态已经不一致或未加载
+                // 尝试从数据库获取最后一次标记为登录的用户并登出他
+                // 但更安全的做法是清除所有用户的登录标记，以防万一
+                null 
+            }
+
+            if (userIdToLogout != null) {
+                userRepository.updateLoginStatus(userIdToLogout, false)
+                Log.d(TAG, "用户 $userIdToLogout 已登出，isLoggedIn 设置为 false")
+            } else {
+                // 如果无法获取当前用户ID（例如，状态已经是Error或Loading），
+                // 作为安全措施，可以将所有用户的登录状态清除。
+                userRepository.clearAllLoginStatus()
+                Log.w(TAG, "无法获取当前登录用户ID或状态非Success，已清除所有用户的登录标记")
+            }
+            
+            // 重置 ViewModel 中的状态
+            // 设置为一个明确的“已登出”状态，HomeScreen应该能识别并显示适当的UI（例如，不显示用户信息）
+            // 而不是显示加载指示器，这可能导致闪动。
+            _userInfoState.value = UserInfoState.Error("用户已登出") 
+            _loginState.value = LoginResult.Idle
+            Log.d(TAG, "ViewModel: 用户状态已设置为 Error('用户已登出')")
+        }
     }
 
     /**

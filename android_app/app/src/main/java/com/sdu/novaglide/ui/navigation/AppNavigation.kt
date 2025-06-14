@@ -3,41 +3,34 @@ package com.sdu.novaglide.ui.navigation
 import android.util.Log
 import androidx.compose.foundation.layout.*
 import androidx.compose.material3.*
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
+import androidx.compose.ui.platform.LocalContext
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import com.sdu.novaglide.core.util.ApiKeyStore
 import com.sdu.novaglide.data.repository.ChatRepository
-import com.sdu.novaglide.ui.features.qna.ApiSettingsScreen
-import com.sdu.novaglide.ui.features.qna.ApiSettingsViewModel
+import com.sdu.novaglide.ui.features.qna.ApiSettingsScreen // Corrected import path
+import com.sdu.novaglide.ui.features.qna.ApiSettingsViewModel // Corrected import path
 import com.sdu.novaglide.ui.features.qna.QnaScreen
 import com.sdu.novaglide.ui.features.qna.QnaViewModel
-import com.sdu.novaglide.ui.features.home.HomeScreen // 确保 HomeScreen 导入正确
+import com.sdu.novaglide.ui.features.home.HomeScreen
 import com.sdu.novaglide.ui.features.profile.ProfileScreen
 import com.sdu.novaglide.ui.features.profile.EditUserInfoScreen
 import com.sdu.novaglide.ui.features.profile.BrowsingHistoryScreen
 import com.sdu.novaglide.ui.features.profile.UserInfoScreen
 import com.sdu.novaglide.ui.features.profile.UserInfoViewModel
 import com.sdu.novaglide.ui.features.profile.BrowsingHistoryViewModel
-import com.sdu.novaglide.ui.features.profile.FavoriteArticleViewModel // 导入
-import com.sdu.novaglide.ui.features.profile.FavoriteArticlesScreen // 导入
-import androidx.compose.ui.platform.LocalContext
-import com.sdu.novaglide.data.repository.UserRepositoryImpl
-import com.sdu.novaglide.data.repository.UserRepository
+import com.sdu.novaglide.ui.features.profile.FavoriteArticleViewModel
+import com.sdu.novaglide.ui.features.profile.FavoriteArticlesScreen
 import com.sdu.novaglide.NovaGlideApplication
-import com.sdu.novaglide.ui.features.auth.LoginScreen // 确保 LoginScreen 导入正确
-import androidx.navigation.NavGraph.Companion.findStartDestination // 确保 findStartDestination 导入正确
-import com.sdu.novaglide.ui.features.auth.RegisterScreen // 确保 RegisterScreen 导入正确
-import com.sdu.novaglide.ui.features.home.NewsDetailScreen // 确保 NewsDetailScreen 导入正确
+import com.sdu.novaglide.ui.features.auth.LoginScreen
+import androidx.navigation.NavGraph.Companion.findStartDestination
+import com.sdu.novaglide.ui.features.auth.RegisterScreen
+import com.sdu.novaglide.ui.features.home.NewsDetailScreen
 import com.sdu.novaglide.ui.features.home.NewsViewModel
 
 private const val TAG_NAV = "AppNavigation"
@@ -54,20 +47,20 @@ object AppRoute {
     const val USER_INFO = "user_info"
     const val EDIT_USER_INFO = "edit_user_info"
     const val BROWSING_HISTORY = "browsing_history"
-    const val FAVORITE_ARTICLES = "favorite_articles" // 新增收藏路由
-    const val NEWS_DETAIL = "news_detail"
-    const val LOGIN = "login"
-    const val REGISTER = "register"
-}
+    const val FAVORITE_ARTICLES = "favorite_articles"
+    const val LOGIN = "login" // <-- 添加 LOGIN 路由
+    const val REGISTER = "register" // <-- 添加 REGISTER 路由
+    const val NEWS_DETAIL = "news_detail" // <-- 添加 NEWS_DETAIL 路由
+} // <-- 移除末尾的 */
 
-/**
+ /**
  * 应用导航组件
  */
 @Composable
 fun AppNavigation(
     modifier: Modifier = Modifier,
     navController: NavHostController = rememberNavController(),
-    startDestination: String = AppRoute.LOGIN,
+    startDestination: String, // Changed: No default, will be provided by MainActivity
     chatRepository: ChatRepository,
     apiKeyStore: ApiKeyStore
 ) {
@@ -95,12 +88,12 @@ fun AppNavigation(
     val newsViewModel: NewsViewModel = remember { NewsViewModel() }
 
     LaunchedEffect(key1 = Unit) {
-        Log.d(TAG_NAV, "AppNavigation 初始化完成，开始导航至: $startDestination")
+        Log.d(TAG_NAV, "AppNavigation 初始化完成，NavHost 将使用的 startDestination: $startDestination")
     }
 
     NavHost(
         navController = navController,
-        startDestination = startDestination,
+        startDestination = startDestination, 
         modifier = modifier
     ) {
         // 首页
@@ -111,8 +104,8 @@ fun AppNavigation(
                 newsViewModel = newsViewModel,
                 onNavigateToQna = { navController.navigate(AppRoute.QNA) },
                 onNavigateToProfile = { navController.navigate(AppRoute.PROFILE) },
-                onNavigateToNewsDetail = { documentId ->
-                    navController.navigate("${AppRoute.NEWS_DETAIL}/$documentId")
+                onNavigateToNewsDetail = { documentId -> 
+                    navController.navigate("${AppRoute.NEWS_DETAIL}/$documentId") // 使用 AppRoute.NEWS_DETAIL
                 }
             )
         }
@@ -137,32 +130,34 @@ fun AppNavigation(
         // 个人资料主页
         composable(AppRoute.PROFILE) {
             ProfileScreen(
-                onNavigateBack = { navController.popBackStack() },
+                onNavigateBack = { navController.popBackStack() }, // Or handle differently if it's a tab root
                 onNavigateToUserInfo = { navController.navigate(AppRoute.USER_INFO) },
                 viewModel = actualUserInfoViewModel,
                 onNavigateToHome = {
                     navController.navigate(AppRoute.HOME) {
                         launchSingleTop = true
-                        popUpTo(navController.graph.findStartDestination().id) { // 确保 findStartDestination 正确调用
-                            saveState = true
-                        }
+                        popUpTo(navController.graph.findStartDestination().id) { saveState = true }
                     }
                 },
                 onNavigateToChat = {
                     navController.navigate(AppRoute.QNA) {
-                        popUpTo(navController.graph.findStartDestination().id) { // 确保 findStartDestination 正确调用
-                            saveState = true
-                        }
+                        popUpTo(navController.graph.findStartDestination().id) { saveState = true }
                         launchSingleTop = true
                         restoreState = true
                     }
                 },
                 onNavigateToLogout = {
+                    Log.d(TAG_NAV, "Logout: Navigating to LOGIN and clearing up to graph root or HOME.")
                     navController.navigate(AppRoute.LOGIN) {
-                        popUpTo(navController.graph.findStartDestination().id) { // 确保 findStartDestination 正确调用
-                            inclusive = true
+                        // 尝试 popUpTo 整个图的 ID
+                        popUpTo(navController.graph.id) { // navController.graph.id 是整个 NavHost 图的 ID
+                            inclusive = true 
                         }
-                        launchSingleTop = true
+                        // 或者，如果 HOME 是确定的登录后根屏幕:
+                        // popUpTo(AppRoute.HOME) {
+                        //     inclusive = true
+                        // }
+                        launchSingleTop = true 
                     }
                 },
                 onNavigateToEditUserInfo = { navController.navigate(AppRoute.EDIT_USER_INFO) },
@@ -194,7 +189,7 @@ fun AppNavigation(
                 browsingHistoryViewModel = browsingHistoryViewModel,
                 onNavigateBack = { navController.popBackStack() },
                 onNavigateToNewsDetail = { documentId ->
-                    navController.navigate("${AppRoute.NEWS_DETAIL}/$documentId") // 确保导航逻辑完整
+                    navController.navigate("${AppRoute.NEWS_DETAIL}/$documentId") // 使用 AppRoute.NEWS_DETAIL
                 }
             )
         }
@@ -206,11 +201,11 @@ fun AppNavigation(
                 favoriteArticleViewModel = favoriteArticleViewModel,
                 onNavigateBack = { navController.popBackStack() },
                 onNavigateToNewsDetail = { documentId ->
-                    navController.navigate("${AppRoute.NEWS_DETAIL}/$documentId")
+                    navController.navigate("${AppRoute.NEWS_DETAIL}/$documentId") // 使用 AppRoute.NEWS_DETAIL
                 }
             )
         }
-
+        
         // 新闻 (临时屏幕)
         composable(AppRoute.NEWS) {
             // 假设 TemporaryScreen 是一个已定义的 Composable
@@ -222,52 +217,42 @@ fun AppNavigation(
         }
 
         // 资讯详情页路由
-        composable("${AppRoute.NEWS_DETAIL}/{documentId}") { backStackEntry ->
+        composable("${AppRoute.NEWS_DETAIL}/{documentId}") { backStackEntry -> // 使用 AppRoute.NEWS_DETAIL
             val documentId = backStackEntry.arguments?.getString("documentId")
-            if (documentId != null) {
-                NewsDetailScreen(
-                    documentId = documentId,
-                    onBack = { navController.popBackStack() }
-                )
-            } else {
-                // Handle error: documentId is null
-                Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                    Text("错误：未提供资讯ID")
-                }
-            }
+            NewsDetailScreen(
+                newsId = documentId, 
+                onNavigateBack = { navController.popBackStack() },
+                userInfoViewModel = actualUserInfoViewModel,
+                favoriteArticleViewModel = favoriteArticleViewModel,
+                newsViewModel = newsViewModel 
+            )
         }
 
         // 登录页路由
-        composable(AppRoute.LOGIN) {
-            LoginScreen( // 使用正确的 LoginScreen Composable 名称
+        composable(AppRoute.LOGIN) { 
+            LoginScreen(
                 viewModel = actualUserInfoViewModel,
                 onNavigateToHome = {
                     navController.navigate(AppRoute.HOME) {
-                        popUpTo(AppRoute.LOGIN) {
-                            inclusive = true
-                        }
+                        popUpTo(AppRoute.LOGIN) { inclusive = true } 
                         launchSingleTop = true
                     }
                 },
-                onNavigateToRegister = {
-                    navController.navigate(AppRoute.REGISTER)
-                }
+                onNavigateToRegister = { navController.navigate(AppRoute.REGISTER) } // 使用 AppRoute.REGISTER
             )
         }
 
         // 注册页路由
-        composable(AppRoute.REGISTER) {
-            RegisterScreen( // 使用正确的 RegisterScreen Composable 名称
+        composable(AppRoute.REGISTER) { // 使用 AppRoute.REGISTER
+            RegisterScreen(
                 viewModel = actualUserInfoViewModel,
                 onNavigateToLogin = {
-                    navController.navigate(AppRoute.LOGIN) {
-                        popUpTo(AppRoute.REGISTER) { inclusive = true }
+                    navController.navigate(AppRoute.LOGIN) { // 使用 AppRoute.LOGIN
+                        popUpTo(AppRoute.REGISTER) { inclusive = true } // 使用 AppRoute.REGISTER
                         launchSingleTop = true
                     }
                 },
-                onNavigateBack = {
-                    navController.popBackStack()
-                }
+                onNavigateBack = { navController.popBackStack() }
             )
         }
     }

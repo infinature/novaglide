@@ -31,7 +31,7 @@ fun ProfileScreen(
     viewModel: UserInfoViewModel,
     onNavigateToHome: () -> Unit,
     onNavigateToChat: () -> Unit,
-    onNavigateToLogout: () -> Unit, // 新增登出回调
+    onNavigateToLogout: () -> Unit, // 登出回调，由 AppNavigation 实现导航栈清理
     onNavigateToEditUserInfo: () -> Unit, // 新增导航到编辑页面的回调
     onNavigateToBrowsingHistory: () -> Unit, // 确保此参数存在
     onNavigateToFavorites: () -> Unit // 新增导航到收藏页面的回调
@@ -134,7 +134,8 @@ fun ProfileScreen(
                                 Text(text = "加载中...", fontSize = 20.sp, fontWeight = FontWeight.Bold)
                             }
                             is UserInfoState.Error -> {
-                                Text(text = "获取失败", fontSize = 20.sp, fontWeight = FontWeight.Bold, color = Color.Red)
+                                // 当 UserInfoViewModel.logout() 将状态设置为 Error("用户已登出") 时，这里会显示
+                                Text(text = state.message, fontSize = 16.sp, color = Color.Gray) // 可以调整显示方式
                             }
                         }
                     }
@@ -150,7 +151,10 @@ fun ProfileScreen(
                 ProfileMenuItem(icon = Icons.Filled.Favorite, title = "我的收藏", onClick = onNavigateToFavorites) // 修改onClick
                 ProfileMenuItem(icon = Icons.Filled.History, title = "浏览历史", onClick = onNavigateToBrowsingHistory) // 使用此参数
                 ProfileMenuItem(icon = Icons.Filled.Edit, title = "信息编辑", onClick = onNavigateToEditUserInfo)
-                ProfileMenuItem(icon = Icons.Filled.ExitToApp, title = "退出登录", onClick = onNavigateToLogout)
+                ProfileMenuItem(icon = Icons.Filled.ExitToApp, title = "退出登录", onClick = {
+                    viewModel.logout() // 1. 清除 ViewModel 和数据库中的登录状态
+                    onNavigateToLogout() // 2. 执行导航，AppNavigation 会处理返回栈
+                })
             }
         }
     }

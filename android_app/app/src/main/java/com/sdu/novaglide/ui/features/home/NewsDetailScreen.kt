@@ -7,14 +7,21 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.material.icons.filled.Favorite // 确保导入
+import androidx.compose.material.icons.filled.FavoriteBorder // 确保导入
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color // 确保导入
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
 import com.sdu.novaglide.data.remote.api.ApiClient
+import com.sdu.novaglide.ui.features.profile.FavoriteArticleViewModel // 导入
+import com.sdu.novaglide.ui.features.profile.UserInfoState // 导入
+import com.sdu.novaglide.ui.features.profile.UserInfoViewModel // 导入
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch // 确保导入
 import kotlinx.coroutines.withContext
 
 private const val TAG = "NewsDetailScreen"
@@ -28,20 +35,35 @@ sealed class ContentState {
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun NewsDetailScreen(
-    documentId: String,
-    onBack: () -> Unit
+    newsId: String?, // 修改参数名为 newsId，并使其可空以处理潜在的 null 情况
+    onNavigateBack: () -> Unit, // 修改参数名为 onNavigateBack
+    userInfoViewModel: UserInfoViewModel, // 添加 userInfoViewModel
+    favoriteArticleViewModel: FavoriteArticleViewModel, // 添加 favoriteArticleViewModel
+    newsViewModel: NewsViewModel // 添加 newsViewModel (虽然当前未使用，但保持一致性)
 ) {
     var contentState by remember { mutableStateOf<ContentState>(ContentState.Loading) }
+    val snackbarHostState = remember { SnackbarHostState() } // 用于显示提示信息
+    val coroutineScope = rememberCoroutineScope()
+    val currentUserState by userInfoViewModel.userInfoState.collectAsState()
+    val isFavorite by favoriteArticleViewModel.isFavorite.collectAsState()
 
-    LaunchedEffect(documentId) {
-        Log.d(TAG, "LaunchedEffect started for documentId: $documentId")
+    // 使用传入的 newsId 作为 documentId
+    val documentIdToFetch = newsId
+
+    LaunchedEffect(documentIdToFetch) {
+        if (documentIdToFetch == null) {
+            Log.w(TAG, "newsId is null, cannot fetch details.")
+            contentState = ContentState.Error("资讯ID无效")
+            return@LaunchedEffect
+        }
+        Log.d(TAG, "LaunchedEffect started for documentId: $documentIdToFetch")
         contentState = ContentState.Loading
         try {
             val response = withContext(Dispatchers.IO) {
                 ApiClient.instance.getDatasetDocumentDetail(
                     bearerToken = "Bearer ragflow-ExZjM1NmYyNDc3NDExZjBhMTIxZmVjY2",
                     datasetId = "bfd51b5e475d11f0850dfecceaed7a8e",
-                    docId = documentId
+                    docId = documentIdToFetch // 使用 documentIdToFetch
                 )
             }
             Log.d(TAG, "API Response received: code=${response.code()}, message=${response.message()}")
@@ -51,11 +73,18 @@ fun NewsDetailScreen(
                 if (responseBody != null) {
                     val content = responseBody.string()
                     Log.d(TAG, "Response Body as String: $content")
-                    // Since we can't get title from this endpoint, we use a default one.
-                    val title = "资讯详情" 
+                    // 尝试从 newsViewModel 获取标题，如果找不到则使用默认标题
+                    val articleTitle = newsViewModel.newsList.value.find { it.id == documentIdToFetch }?.title ?: "资讯详情"
                     
-                    contentState = ContentState.Success(content, title)
-                    Log.d(TAG, "State set to Success")
+                    contentState = ContentState.Success(content, articleTitle)
+                    Log.d(TAG, "State set to Success with title: $articleTitle")
+
+                    // 获取到内容后，检查是否已收藏
+                    if (currentUserState is UserInfoState.Success) {
+                        val userId = (currentUserState as UserInfoState.Success).userInfo.userId
+                        favoriteArticleViewModel.checkIfFavorite(userId, documentIdToFetch)
+                    }
+
                 } else {
                     contentState = ContentState.Error("响应体为空")
                     Log.d(TAG, "State set to Error: Response body is null")
@@ -72,6 +101,7 @@ fun NewsDetailScreen(
     }
 
     Scaffold(
+        snackbarHost = { SnackbarHost(snackbarHostState) }, // 添加 SnackbarHost
         topBar = {
             TopAppBar(
                 title = {
@@ -82,8 +112,33 @@ fun NewsDetailScreen(
                     Text(text = title)
                 },
                 navigationIcon = {
-                    IconButton(onClick = onBack) {
+                    IconButton(onClick = onNavigateBack) { // 使用 onNavigateBack
                         Icon(Icons.Default.ArrowBack, contentDescription = "返回")
+                    }
+                },
+                actions = { // 添加收藏按钮
+                    if (documentIdToFetch != null && contentState is ContentState.Success) {
+                        val currentTitle = (contentState as ContentState.Success).title
+                        IconButton(onClick = {
+                            if (currentUserState is UserInfoState.Success) {
+                                val userId = (currentUserState as UserInfoState.Success).userInfo.userId
+                                if (isFavorite) {
+                                    favoriteArticleViewModel.removeFavorite(userId, documentIdToFetch)
+                                } else {
+                                    favoriteArticleViewModel.addFavorite(userId, documentIdToFetch, currentTitle)
+                                }
+                            } else {
+                                coroutineScope.launch {
+                                    snackbarHostState.showSnackbar("请先登录")
+                                }
+                            }
+                        }) {
+                            Icon(
+                                imageVector = if (isFavorite) Icons.Filled.Favorite else Icons.Filled.FavoriteBorder,
+                                contentDescription = "收藏",
+                                tint = if (isFavorite) MaterialTheme.colorScheme.primary else Color.Gray
+                            )
+                        }
                     }
                 }
             )

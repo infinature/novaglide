@@ -62,4 +62,16 @@ interface UserRepository {
      * 获取当前数据库中最大的用户ID（格式如 "U000001"）
      */
     suspend fun getMaxUserId(): String?
+
+    /**
+     * 更新登录状态
+     * @param userId 用户ID
+     * @param isLoggedIn 登录状态，true 表示已登录，false 表示未登录
+     */
+    suspend fun updateLoginStatus(userId: String, isLoggedIn: Boolean)
+
+    /**
+     * 清除所有登录状态
+     */
+    suspend fun clearAllLoginStatus()
 }

@@ -145,9 +145,7 @@ fun LoginScreen(
                 horizontalArrangement = Arrangement.SpaceEvenly,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                TextButton(onClick = { /* TODO: 实现忘记密码逻辑 */ }) {
-                    Text("忘记密码?")
-                }
+                
                 TextButton(onClick = onNavigateToRegister) { // 导航到注册页
                     Text("创建账户")
                 }

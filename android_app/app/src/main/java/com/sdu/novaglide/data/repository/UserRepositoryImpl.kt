@@ -25,7 +25,7 @@ class UserRepositoryImpl(
     
     override fun getCurrentUserInfo(): Flow<Result<UserInfo>> = flow {
         try {
-            val userEntity = userDao.getCurrentUser()
+            val userEntity = userDao.getCurrentUser() // 这现在会获取 isLoggedIn = true 的用户
             if (userEntity != null) {
                 val userInfo = UserMapper.mapEntityToDomain(userEntity)
                 emit(Result.success(userInfo))
@@ -178,6 +178,21 @@ class UserRepositoryImpl(
     override suspend fun getMaxUserId(): String? {
         return withContext(Dispatchers.IO) {
             userDao.getMaxUserId()
+        }
+    }
+
+    // 实现新增的方法
+    override suspend fun updateLoginStatus(userId: String, isLoggedIn: Boolean) {
+        withContext(Dispatchers.IO) {
+            userDao.updateLoginStatus(userId, isLoggedIn)
+            Log.d(TAG, "用户 $userId 的登录状态更新为: $isLoggedIn")
+        }
+    }
+
+    override suspend fun clearAllLoginStatus() {
+        withContext(Dispatchers.IO) {
+            userDao.clearAllLoginStatus()
+            Log.d(TAG, "所有用户的登录状态已清除")
         }
     }
 }

@@ -5,7 +5,10 @@ import android.util.Log
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.padding
+import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
@@ -18,15 +21,13 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.datastore.core.DataStore
-import androidx.datastore.preferences.core.Preferences
+import androidx.compose.ui.unit.dp
 import androidx.datastore.preferences.core.booleanPreferencesKey
 import androidx.datastore.preferences.core.edit
 import com.sdu.novaglide.core.constants.ApiConstants
 import com.sdu.novaglide.core.util.ApiKeyStore
 import com.sdu.novaglide.core.util.ApiKeyStore.Companion.dataStore
 import com.sdu.novaglide.data.di.NetworkModule
-import com.sdu.novaglide.data.remote.api.DeepSeekApiService
 import com.sdu.novaglide.data.remote.api.RagFlowApiService
 import com.sdu.novaglide.data.repository.ChatRepository
 import com.sdu.novaglide.data.repository.ChatRepositoryImpl
@@ -39,10 +40,9 @@ import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
-import okhttp3.OkHttpClient
+import kotlinx.coroutines.withContext
 import retrofit2.Retrofit
 import retrofit2.converter.gson.GsonConverterFactory
-import java.util.concurrent.TimeUnit
 
 private const val TAG = "MainActivity"
 
@@ -55,45 +55,64 @@ class MainActivity : ComponentActivity() {
     
     // 指示是否是首次运行
     private val FIRST_RUN_KEY = booleanPreferencesKey(ApiConstants.PREF_FIRST_RUN)
+
+    // 动态起始路由
+    private var determinedStartDestination by mutableStateOf<String?>(null)
     
-    // 应用初始化状态
-    private var initSuccess by mutableStateOf(false)
-    private var errorMessage by mutableStateOf<String?>(null)
+    // 初始化错误信息
+    private var initializationError by mutableStateOf<String?>(null)
     
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         Log.d(TAG, "onCreate 开始初始化应用")
-        
-        try {
-            // 初始化依赖
-            initDependencies()
-            
-            // 检查是否首次运行并设置默认值
-            checkFirstRun()
-            
-            setContent {
-                NovaGlideTheme {
-                    Surface(
-                        modifier = Modifier.fillMaxSize(),
-                        color = MaterialTheme.colorScheme.background
-                    ) {
-                        AppStartup(
-                            initSuccess = initSuccess,
-                            errorMessage = errorMessage,
-                            onRetry = { recreate() },
-                            content = {
-                                NovaGlideApp(
-                                    chatRepository = chatRepository,
-                                    apiKeyStore = apiKeyStore
-                                )
+
+        // 在主线程启动协程进行初始化
+        CoroutineScope(Dispatchers.Main).launch {
+            try {
+                // 初始化依赖
+                initDependencies()
+                
+                // 检查首次运行和用户状态
+                checkFirstRunAndUserStatus()
+            } catch (e: Exception) {
+                Log.e(TAG, "onCreate 初始化或状态检查失败", e)
+                initializationError = "应用初始化失败: ${e.message}"
+            }
+        }
+
+        setContent {
+            NovaGlideTheme {
+                Surface(
+                    modifier = Modifier.fillMaxSize(),
+                    color = MaterialTheme.colorScheme.background
+                ) {
+                    AppStartup(
+                        determinedStartDestination = determinedStartDestination,
+                        initializationError = initializationError,
+                        onRetry = {
+                            // 重置状态并重试初始化
+                            determinedStartDestination = null
+                            initializationError = null
+                            CoroutineScope(Dispatchers.Main).launch {
+                                try {
+                                    initDependencies()
+                                    checkFirstRunAndUserStatus()
+                                } catch (e: Exception) {
+                                    Log.e(TAG, "重试初始化失败", e)
+                                    initializationError = "应用初始化失败: ${e.message}"
+                                }
                             }
-                        )
-                    }
+                        },
+                        content = { startRoute -> // startRoute 是确定的目的地
+                            NovaGlideApp(
+                                chatRepository = chatRepository,
+                                apiKeyStore = apiKeyStore,
+                                initialRoute = startRoute // 传递给 NovaGlideApp
+                            )
+                        }
+                    )
                 }
             }
-        } catch (e: Exception) {
-            Log.e(TAG, "onCreate 初始化失败", e)
-            errorMessage = "应用初始化失败: ${e.message}"
         }
     }
     
@@ -110,8 +129,6 @@ class MainActivity : ComponentActivity() {
             // 使用NetworkModule创建依赖
             val okHttpClient = NetworkModule.provideOkHttpClient(isDebug = true)
             val deepSeekApiService = NetworkModule.provideDeepSeekApiService(okHttpClient)
-            
-            // 暂时使用直接创建的RagFlow API服务，后续可以用协程获取用户配置的服务
             val ragFlowApiService = Retrofit.Builder()
                 .baseUrl(ApiConstants.RAGFLOW_BASE_URL)
                 .client(okHttpClient)
@@ -134,53 +151,60 @@ class MainActivity : ComponentActivity() {
     }
     
     /**
-     * 检查是否首次运行应用，如果是则初始化默认设置
-     * 使用更安全的方式初始化API密钥（不在源代码中存储）
+     * 检查首次运行应用和用户登录状态
      */
-    private fun checkFirstRun() {
-        CoroutineScope(Dispatchers.IO).launch {
+    private suspend fun checkFirstRunAndUserStatus() {
+        withContext(Dispatchers.IO) {
             try {
-                Log.d(TAG, "开始检查首次运行状态")
+                Log.d(TAG, "开始检查首次运行和用户状态")
                 
-                val isFirstRun = try {
-                    applicationContext.dataStore.data
-                        .catch { exception -> 
-                            Log.e(TAG, "读取DataStore数据失败", exception)
-                            emit(androidx.datastore.preferences.core.emptyPreferences()) 
-                        }
-                        .map { preferences -> 
-                            preferences[FIRST_RUN_KEY] ?: true 
-                        }
-                        .first()
-                } catch (e: Exception) {
-                    Log.e(TAG, "获取首次运行状态失败", e)
-                    true // 默认为首次运行
-                }
-                
+                // 检查首次运行标志
+                val isFirstRun = applicationContext.dataStore.data
+                    .catch { exception ->
+                        Log.e(TAG, "读取DataStore数据失败", exception)
+                        emit(androidx.datastore.preferences.core.emptyPreferences())
+                    }
+                    .map { preferences -> preferences[FIRST_RUN_KEY] ?: true }
+                    .first()
+
                 if (isFirstRun) {
                     Log.d(TAG, "首次运行应用，初始化默认设置")
-                    
-                    try {
-                        // 由于不应在代码中明文存储密钥，我们只设置服务器URL
-                        // 用户需要在设置界面手动输入API密钥
-                        apiKeyStore.saveRagFlowServerUrl("http://localhost")
-                        
-                        // 将首次运行标志设置为false
-                        applicationContext.dataStore.edit { preferences ->
-                            preferences[FIRST_RUN_KEY] = false
-                        }
-                        
-                        Log.d(TAG, "默认设置初始化成功")
-                    } catch (e: Exception) {
-                        Log.e(TAG, "保存默认设置失败", e)
+                    apiKeyStore.saveRagFlowServerUrl("http://localhost") // 示例默认值
+                    applicationContext.dataStore.edit { preferences ->
+                        preferences[FIRST_RUN_KEY] = false
                     }
+                    Log.d(TAG, "默认设置初始化成功")
                 }
-                
-                // 标记初始化成功
-                initSuccess = true
+
+                // 检查当前用户
+                val application = applicationContext as NovaGlideApplication
+                // getCurrentUser() 现在应该只返回 isLoggedIn = true 的用户
+                val currentUser = application.userDao.getCurrentUser() 
+
+                // 在主线程更新起始路由
+                withContext(Dispatchers.Main) {
+                    // 添加详细日志
+                    if (currentUser == null) {
+                        Log.d(TAG, "从DAO获取的当前用户 (isLoggedIn=true): null")
+                    } else {
+                        Log.d(TAG, "从DAO获取的当前用户 (isLoggedIn=true): userId=${currentUser.userId}, username=${currentUser.username}, isLoggedIn=${currentUser.isLoggedIn}")
+                    }
+
+                    determinedStartDestination = if (currentUser != null) {
+                        Log.d(TAG, "用户已登录 (currentUser != null && currentUser.isLoggedIn == true)，起始页设置为: HOME")
+                        AppRoute.HOME
+                    } else {
+                        Log.d(TAG, "用户未登录 (currentUser == null or currentUser.isLoggedIn == false)，起始页设置为: LOGIN")
+                        AppRoute.LOGIN
+                    }
+                    Log.d(TAG, "最终确定的起始路由 (determinedStartDestination): $determinedStartDestination")
+                }
+                Log.d(TAG, "首次运行和用户状态检查完成")
             } catch (e: Exception) {
-                Log.e(TAG, "检查首次运行时出错", e)
-                errorMessage = "初始化设置失败: ${e.message}"
+                Log.e(TAG, "检查首次运行或用户状态时出错", e)
+                withContext(Dispatchers.Main) { // 切换到主线程更新UI状态
+                    initializationError = "初始化设置或检查用户状态失败: ${e.message}"
+                }
             }
         }
     }
@@ -188,18 +212,24 @@ class MainActivity : ComponentActivity() {
 
 @Composable
 fun AppStartup(
-    initSuccess: Boolean,
-    errorMessage: String?,
+    determinedStartDestination: String?,
+    initializationError: String?,
     onRetry: () -> Unit,
-    content: @Composable () -> Unit
+    content: @Composable (startRoute: String) -> Unit
 ) {
     Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-        if (errorMessage != null) {
-            Text(text = errorMessage)
-        } else if (!initSuccess) {
+        if (initializationError != null) {
+            Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                Text(text = initializationError)
+                Button(onClick = onRetry, modifier = Modifier.padding(top = 8.dp)) {
+                    Text("重试")
+                }
+            }
+        } else if (determinedStartDestination == null) { // 如果目的地尚未确定，则显示加载中
             CircularProgressIndicator()
+            Text("正在加载...", modifier = Modifier.padding(top = 8.dp))
         } else {
-            content()
+            content(determinedStartDestination) // 将确定的路由传递给内容
         }
     }
 }
@@ -207,15 +237,15 @@ fun AppStartup(
 @Composable
 fun NovaGlideApp(
     chatRepository: ChatRepository,
-    apiKeyStore: ApiKeyStore
+    apiKeyStore: ApiKeyStore,
+    initialRoute: String // 添加起始目的地参数
 ) {
-    // 使用新的导航系统
     LaunchedEffect(key1 = Unit) {
-        Log.d(TAG, "启动导航系统")
+        Log.d(TAG, "启动导航系统, 起始路由: $initialRoute")
     }
-    
     AppNavigation(
         chatRepository = chatRepository,
-        apiKeyStore = apiKeyStore
+        apiKeyStore = apiKeyStore,
+        startDestination = initialRoute // 传递确定的起始目的地
     )
 }
