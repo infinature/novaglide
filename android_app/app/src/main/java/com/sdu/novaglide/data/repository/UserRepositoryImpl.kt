@@ -69,11 +69,11 @@ class UserRepositoryImpl(
     override suspend fun registerUser(userEntity: UserEntity): Boolean {
         return withContext(Dispatchers.IO) {
             try {
-                // 再次检查用户名是否已存在，以防并发问题（虽然ViewModel层已检查）
+                // 检查用户名是否已存在
                 val existing = userDao.getUserByUsername(userEntity.username)
                 if (existing != null) {
                     Log.w(TAG, "注册失败，用户名 ${userEntity.username} 已存在于数据库")
-                    return@withContext false
+                    return@withContext false // 用户名已存在
                 }
                 userDao.insertUser(userEntity) // UserEntity 已包含密码
                 Log.d(TAG, "用户 ${userEntity.username} 注册成功并已存入数据库")
