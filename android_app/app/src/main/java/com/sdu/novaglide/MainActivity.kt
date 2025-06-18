@@ -4,6 +4,7 @@ import android.os.Bundle
 import android.util.Log
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
+import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
@@ -15,18 +16,21 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.datastore.preferences.core.booleanPreferencesKey
 import androidx.datastore.preferences.core.edit
 import com.sdu.novaglide.core.constants.ApiConstants
 import com.sdu.novaglide.core.util.ApiKeyStore
 import com.sdu.novaglide.core.util.ApiKeyStore.Companion.dataStore
+import com.sdu.novaglide.core.util.settingsDataStore
 import com.sdu.novaglide.data.di.NetworkModule
 import com.sdu.novaglide.data.remote.api.RagFlowApiService
 import com.sdu.novaglide.data.repository.ChatRepository
@@ -62,6 +66,9 @@ class MainActivity : ComponentActivity() {
     // 初始化错误信息
     private var initializationError by mutableStateOf<String?>(null)
     
+    // 依赖初始化状态
+    private var dependenciesInitialized by mutableStateOf(false)
+    
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         Log.d(TAG, "onCreate 开始初始化应用")
@@ -81,38 +88,28 @@ class MainActivity : ComponentActivity() {
         }
 
         setContent {
-            NovaGlideTheme {
-                Surface(
-                    modifier = Modifier.fillMaxSize(),
-                    color = MaterialTheme.colorScheme.background
-                ) {
-                    AppStartup(
-                        determinedStartDestination = determinedStartDestination,
-                        initializationError = initializationError,
-                        onRetry = {
-                            // 重置状态并重试初始化
-                            determinedStartDestination = null
-                            initializationError = null
-                            CoroutineScope(Dispatchers.Main).launch {
-                                try {
-                                    initDependencies()
-                                    checkFirstRunAndUserStatus()
-                                } catch (e: Exception) {
-                                    Log.e(TAG, "重试初始化失败", e)
-                                    initializationError = "应用初始化失败: ${e.message}"
-                                }
-                            }
-                        },
-                        content = { startRoute -> // startRoute 是确定的目的地
-                            NovaGlideApp(
-                                chatRepository = chatRepository,
-                                apiKeyStore = apiKeyStore,
-                                initialRoute = startRoute // 传递给 NovaGlideApp
-                            )
+            AppContent(
+                determinedStartDestination = determinedStartDestination,
+                initializationError = initializationError,
+                dependenciesInitialized = dependenciesInitialized,
+                chatRepository = if (dependenciesInitialized) chatRepository else null,
+                apiKeyStore = if (dependenciesInitialized) apiKeyStore else null,
+                onRetry = {
+                    // 重置状态并重试初始化
+                    determinedStartDestination = null
+                    initializationError = null
+                    dependenciesInitialized = false
+                    CoroutineScope(Dispatchers.Main).launch {
+                        try {
+                            initDependencies()
+                            checkFirstRunAndUserStatus()
+                        } catch (e: Exception) {
+                            Log.e(TAG, "重试初始化失败", e)
+                            initializationError = "应用初始化失败: ${e.message}"
                         }
-                    )
+                    }
                 }
-            }
+            )
         }
     }
     
@@ -144,6 +141,7 @@ class MainActivity : ComponentActivity() {
             )
             
             Log.d(TAG, "依赖初始化成功")
+            dependenciesInitialized = true
         } catch (e: Exception) {
             Log.e(TAG, "初始化依赖失败", e)
             throw e
@@ -202,6 +200,53 @@ class MainActivity : ComponentActivity() {
                     initializationError = "初始化设置或检查用户状态失败: ${e.message}"
                 }
             }
+        }
+    }
+}
+
+@Composable
+fun AppContent(
+    determinedStartDestination: String?,
+    initializationError: String?,
+    dependenciesInitialized: Boolean,
+    chatRepository: ChatRepository?,
+    apiKeyStore: ApiKeyStore?,
+    onRetry: () -> Unit
+) {
+    // 读取深色模式设置
+    val context = LocalContext.current
+    val darkModeKey = booleanPreferencesKey("dark_mode")
+    val systemDarkTheme = isSystemInDarkTheme()
+    val isDarkMode by context.settingsDataStore.data
+        .map { preferences -> preferences[darkModeKey] ?: systemDarkTheme }
+        .collectAsState(initial = systemDarkTheme)
+    
+    NovaGlideTheme(darkTheme = isDarkMode) {
+        Surface(
+            modifier = Modifier.fillMaxSize(),
+            color = MaterialTheme.colorScheme.background
+        ) {
+            AppStartup(
+                determinedStartDestination = determinedStartDestination,
+                initializationError = initializationError,
+                onRetry = onRetry,
+                content = { startRoute -> // startRoute 是确定的目的地
+                    if (dependenciesInitialized && chatRepository != null && apiKeyStore != null) {
+                        NovaGlideApp(
+                            chatRepository = chatRepository,
+                            apiKeyStore = apiKeyStore,
+                            initialRoute = startRoute // 传递给 NovaGlideApp
+                        )
+                    } else {
+                        Box(
+                            modifier = Modifier.fillMaxSize(),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            CircularProgressIndicator()
+                        }
+                    }
+                }
+            )
         }
     }
 }

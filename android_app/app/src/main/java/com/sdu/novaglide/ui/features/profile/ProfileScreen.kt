@@ -36,7 +36,9 @@ fun ProfileScreen(
     onNavigateToBrowsingHistory: () -> Unit, // 确保此参数存在
     onNavigateToFavorites: () -> Unit, // 新增导航到收藏页面的回调
     onNavigateToLogin: () -> Unit = {}, // 新增登录导航回调
-    onNavigateToRegister: () -> Unit = {} // 新增注册导航回调
+    onNavigateToRegister: () -> Unit = {}, // 新增注册导航回调
+    onNavigateToAbout: () -> Unit = {}, // 新增关于页面导航回调
+    onNavigateToSettings: () -> Unit = {} // 新增设置页面导航回调
 ) {
     val userInfoState by viewModel.userInfoState.collectAsState()
 
@@ -59,7 +61,7 @@ fun ProfileScreen(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(paddingValues)
-                .background(Color(0xFFF5F5F5)), // 淡灰色背景
+                .background(MaterialTheme.colorScheme.background), // 使用主题背景色
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
             // 用户信息卡片
@@ -72,7 +74,7 @@ fun ProfileScreen(
                             .padding(16.dp)
                             .clickable { onNavigateToUserInfo() },
                         elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
-                        colors = CardDefaults.cardColors(containerColor = Color.White)
+                        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
                     ) {
                         Row(
                             modifier = Modifier
@@ -92,7 +94,7 @@ fun ProfileScreen(
                                     Text(
                                         text = state.userInfo.nickname.first().toString(),
                                         fontSize = 24.sp,
-                                        color = Color.White,
+                                        color = MaterialTheme.colorScheme.onPrimary,
                                         fontWeight = FontWeight.Bold
                                     )
                                 }
@@ -104,12 +106,13 @@ fun ProfileScreen(
                                 Text(
                                     text = state.userInfo.nickname,
                                     fontSize = 20.sp,
-                                    fontWeight = FontWeight.Bold
+                                    fontWeight = FontWeight.Bold,
+                                    color = MaterialTheme.colorScheme.onSurface
                                 )
                                 Text(
                                     text = state.userInfo.bio.take(30) + if (state.userInfo.bio.length > 30) "..." else "",
                                     fontSize = 14.sp,
-                                    color = Color.Gray
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
                                 )
                             }
                         }
@@ -122,7 +125,7 @@ fun ProfileScreen(
                             .fillMaxWidth()
                             .padding(16.dp),
                         elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
-                        colors = CardDefaults.cardColors(containerColor = Color.White)
+                        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
                     ) {
                         Column(
                             modifier = Modifier
@@ -135,13 +138,13 @@ fun ProfileScreen(
                                 modifier = Modifier
                                     .size(80.dp)
                                     .clip(CircleShape)
-                                    .background(Color.LightGray),
+                                    .background(MaterialTheme.colorScheme.surfaceVariant),
                                 contentAlignment = Alignment.Center
                             ) {
                                 Icon(
                                     Icons.Filled.Person,
                                     contentDescription = "游客",
-                                    tint = Color.Gray,
+                                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
                                     modifier = Modifier.size(48.dp)
                                 )
                             }
@@ -151,13 +154,14 @@ fun ProfileScreen(
                             Text(
                                 text = "欢迎使用 NovaGlide",
                                 fontSize = 20.sp,
-                                fontWeight = FontWeight.Bold
+                                fontWeight = FontWeight.Bold,
+                                color = MaterialTheme.colorScheme.onSurface
                             )
                             
                             Text(
                                 text = "登录后享受更多功能",
                                 fontSize = 14.sp,
-                                color = Color.Gray,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
                                 modifier = Modifier.padding(vertical = 8.dp)
                             )
                             
@@ -199,23 +203,70 @@ fun ProfileScreen(
                         ProfileMenuItem(icon = Icons.Filled.Favorite, title = "我的收藏", onClick = onNavigateToFavorites)
                         ProfileMenuItem(icon = Icons.Filled.History, title = "浏览历史", onClick = onNavigateToBrowsingHistory)
                         ProfileMenuItem(icon = Icons.Filled.Edit, title = "信息编辑", onClick = onNavigateToEditUserInfo)
+                        
+                        // 分隔线
+                        Spacer(modifier = Modifier.height(8.dp))
+                        
+                        // 应用设置相关
+                        ProfileMenuItem(icon = Icons.Filled.Settings, title = "设置", onClick = onNavigateToSettings)
+                        ProfileMenuItem(icon = Icons.Filled.Info, title = "关于应用", onClick = onNavigateToAbout)
+                        
+                        // 分隔线
+                        Spacer(modifier = Modifier.height(8.dp))
+                        
                         ProfileMenuItem(icon = Icons.Filled.ExitToApp, title = "退出登录", onClick = {
                             viewModel.logout()
                             onNavigateToLogout()
                         })
                     }
                     else -> {
-                        // 未登录状态：显示基础功能（可选）
+                        // 未登录状态：显示基础功能和提示信息
                         ProfileMenuItem(
                             icon = Icons.Filled.Info,
                             title = "关于应用",
-                            onClick = { /* 可以添加关于页面 */ }
+                            onClick = onNavigateToAbout
                         )
                         ProfileMenuItem(
                             icon = Icons.Filled.Settings,
                             title = "设置",
-                            onClick = { /* 可以添加设置页面 */ }
+                            onClick = onNavigateToSettings
                         )
+                        
+                        // 登录提示卡片
+                        Card(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(vertical = 8.dp),
+                            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
+                        ) {
+                            Column(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(20.dp),
+                                horizontalAlignment = Alignment.CenterHorizontally
+                            ) {
+                                Icon(
+                                    Icons.Filled.LockOpen,
+                                    contentDescription = null,
+                                    tint = MaterialTheme.colorScheme.primary,
+                                    modifier = Modifier.size(32.dp)
+                                )
+                                Spacer(modifier = Modifier.height(12.dp))
+                                Text(
+                                    text = "登录后解锁更多功能",
+                                    fontSize = 16.sp,
+                                    fontWeight = FontWeight.Medium,
+                                    color = MaterialTheme.colorScheme.onSurface
+                                )
+                                Spacer(modifier = Modifier.height(8.dp))
+                                Text(
+                                    text = "• 个人收藏管理\n• 浏览历史记录\n• 个性化推荐\n• 用户资料编辑",
+                                    fontSize = 14.sp,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    lineHeight = 20.sp
+                                )
+                            }
+                        }
                     }
                 }
             }
@@ -234,7 +285,7 @@ fun ProfileMenuItem(
             .fillMaxWidth()
             .padding(vertical = 4.dp)
             .clickable { onClick() },
-        colors = CardDefaults.cardColors(containerColor = Color.White)
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
     ) {
         Row(
             modifier = Modifier
@@ -244,9 +295,9 @@ fun ProfileMenuItem(
         ) {
             Icon(icon, contentDescription = title, tint = MaterialTheme.colorScheme.primary)
             Spacer(modifier = Modifier.width(16.dp))
-            Text(text = title, fontSize = 16.sp)
+            Text(text = title, fontSize = 16.sp, color = MaterialTheme.colorScheme.onSurface)
             Spacer(modifier = Modifier.weight(1f))
-            Icon(Icons.Filled.ArrowForwardIos, contentDescription = "进入", tint = Color.Gray)
+            Icon(Icons.Filled.ArrowForwardIos, contentDescription = "进入", tint = MaterialTheme.colorScheme.onSurfaceVariant)
         }
     }
 }

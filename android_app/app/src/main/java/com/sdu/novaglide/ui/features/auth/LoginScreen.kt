@@ -11,6 +11,7 @@ import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.ui.graphics.Color
@@ -23,7 +24,8 @@ import com.sdu.novaglide.ui.features.profile.UserInfoViewModel
 fun LoginScreen(
     viewModel: UserInfoViewModel, // Accept shared ViewModel
     onNavigateToHome: () -> Unit,
-    onNavigateToRegister: () -> Unit // 新增回调
+    onNavigateToRegister: () -> Unit, // 新增回调
+    onNavigateBack: () -> Unit = {} // 添加返回回调
 ) {
     var username by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
@@ -50,6 +52,15 @@ fun LoginScreen(
         topBar = {
             TopAppBar(
                 title = { Text("登录 NovaGlide", fontWeight = FontWeight.Bold) },
+                navigationIcon = {
+                    IconButton(onClick = onNavigateBack) {
+                        Icon(
+                            Icons.Filled.ArrowBack,
+                            contentDescription = "返回",
+                            tint = Color.White
+                        )
+                    }
+                },
                 colors = TopAppBarDefaults.topAppBarColors(
                     containerColor = MaterialTheme.colorScheme.primary,
                     titleContentColor = Color.White

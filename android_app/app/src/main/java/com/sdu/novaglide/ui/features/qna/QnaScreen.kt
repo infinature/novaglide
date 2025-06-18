@@ -73,9 +73,10 @@ fun QnaScreen(
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = Color.White,
-                    titleContentColor = Color.Black,
-                    navigationIconContentColor = Color.Black
+                    containerColor = MaterialTheme.colorScheme.surface,
+                    titleContentColor = MaterialTheme.colorScheme.onSurface,
+                    navigationIconContentColor = MaterialTheme.colorScheme.onSurface,
+                    actionIconContentColor = MaterialTheme.colorScheme.onSurface
                 )
             )
         }
@@ -146,9 +147,9 @@ fun QnaScreen(
                     onClick = { selectedModel = "DeepSeek" },
                     colors = ButtonDefaults.buttonColors(
                         containerColor = if (selectedModel == "DeepSeek") 
-                            MaterialTheme.colorScheme.primary else Color(0xFFE0E0E0),
+                            MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.surfaceVariant,
                         contentColor = if (selectedModel == "DeepSeek") 
-                            Color.White else Color.Black
+                            MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurfaceVariant
                     ),
                     modifier = Modifier.padding(end = 8.dp),
                     shape = RoundedCornerShape(16.dp)
@@ -161,9 +162,9 @@ fun QnaScreen(
                     onClick = { selectedModel = "RAGFlow" },
                     colors = ButtonDefaults.buttonColors(
                         containerColor = if (selectedModel == "RAGFlow") 
-                            MaterialTheme.colorScheme.secondary else Color(0xFFE0E0E0),
+                            MaterialTheme.colorScheme.secondary else MaterialTheme.colorScheme.surfaceVariant,
                         contentColor = if (selectedModel == "RAGFlow") 
-                            Color.White else Color.Black
+                            MaterialTheme.colorScheme.onSecondary else MaterialTheme.colorScheme.onSurfaceVariant
                     ),
                     modifier = Modifier.padding(start = 8.dp),
                     shape = RoundedCornerShape(16.dp)
@@ -187,10 +188,11 @@ fun QnaScreen(
                         .heightIn(min = 56.dp),
                     placeholder = { Text("请输入问题") },
                     shape = RoundedCornerShape(28.dp),
-                    colors = TextFieldDefaults.outlinedTextFieldColors(
-                        containerColor = Color(0xFFF5F5F5),
+                    colors = OutlinedTextFieldDefaults.colors(
+                        unfocusedContainerColor = MaterialTheme.colorScheme.surfaceVariant,
+                        focusedContainerColor = MaterialTheme.colorScheme.surfaceVariant,
                         unfocusedBorderColor = Color.Transparent,
-                        focusedBorderColor = Color.LightGray
+                        focusedBorderColor = MaterialTheme.colorScheme.outline
                     ),
                     trailingIcon = {
                         if (isLoading) {
@@ -222,7 +224,7 @@ fun QnaScreen(
                                         else 
                                             MaterialTheme.colorScheme.secondary
                                     else
-                                        Color.Gray
+                                        MaterialTheme.colorScheme.onSurfaceVariant
                                 )
                             }
                         }
@@ -260,9 +262,9 @@ fun DomainMessageItem(message: com.sdu.novaglide.domain.model.ChatMessage) {
                 )
                 .background(
                     if (message.role == com.sdu.novaglide.domain.model.MessageRole.USER) 
-                        Color(0xFF2196F3) 
+                        MaterialTheme.colorScheme.primary 
                     else 
-                        Color(0xFFE0E0E0)
+                        MaterialTheme.colorScheme.surfaceVariant
                 )
                 .padding(12.dp)
         ) {
@@ -271,14 +273,14 @@ fun DomainMessageItem(message: com.sdu.novaglide.domain.model.ChatMessage) {
                     Text(
                         text = "思考中",
                         color = if (message.role == com.sdu.novaglide.domain.model.MessageRole.USER) 
-                            Color.White else Color.Black,
+                            MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurfaceVariant,
                         fontSize = 14.sp
                     )
                     Spacer(modifier = Modifier.width(8.dp))
                     CircularProgressIndicator(
                         modifier = Modifier.size(16.dp),
                         color = if (message.role == com.sdu.novaglide.domain.model.MessageRole.USER)
-                            Color.White else Color(0xFF2196F3),
+                            MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.primary,
                         strokeWidth = 2.dp
                     )
                 }
@@ -289,7 +291,7 @@ fun DomainMessageItem(message: com.sdu.novaglide.domain.model.ChatMessage) {
                 Text(
                     text = displayContent,
                     color = if (message.role == com.sdu.novaglide.domain.model.MessageRole.USER) 
-                        Color.White else Color.Black,
+                        MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurfaceVariant,
                     fontSize = 14.sp
                 )
                 

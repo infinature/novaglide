@@ -34,6 +34,9 @@ import com.sdu.novaglide.ui.features.home.NewsDetailScreen
 import com.sdu.novaglide.ui.features.home.NewsViewModel
 import com.sdu.novaglide.ui.features.search.SearchScreen
 import com.sdu.novaglide.ui.features.search.SearchViewModel
+import com.sdu.novaglide.ui.features.profile.AboutScreen
+import com.sdu.novaglide.ui.features.profile.SettingsScreen
+import com.sdu.novaglide.ui.features.profile.SettingsViewModel
 
 private const val TAG_NAV = "AppNavigation"
 
@@ -54,6 +57,8 @@ object AppRoute {
     const val REGISTER = "register" // <-- 添加 REGISTER 路由
     const val NEWS_DETAIL = "news_detail" // <-- 添加 NEWS_DETAIL 路由
     const val SEARCH = "search" // <-- 添加 SEARCH 路由
+    const val ABOUT = "about" // <-- 添加 ABOUT 路由
+    const val SETTINGS = "settings" // <-- 添加 SETTINGS 路由
 } // <-- 移除末尾的 */
 
  /**
@@ -93,6 +98,11 @@ fun AppNavigation(
     // SearchViewModel 实例
     val searchViewModel: SearchViewModel = remember {
         SearchViewModel.Factory(application.searchHistoryRepository).create(SearchViewModel::class.java)
+    }
+    
+    // SettingsViewModel 实例
+    val settingsViewModel: SettingsViewModel = remember {
+        SettingsViewModel.Factory(context).create(SettingsViewModel::class.java)
     }
 
     LaunchedEffect(key1 = Unit) {
@@ -167,7 +177,9 @@ fun AppNavigation(
                 onNavigateToBrowsingHistory = { navController.navigate(AppRoute.BROWSING_HISTORY) },
                 onNavigateToFavorites = { navController.navigate(AppRoute.FAVORITE_ARTICLES) },
                 onNavigateToLogin = { navController.navigate(AppRoute.LOGIN) }, // 添加登录导航
-                onNavigateToRegister = { navController.navigate(AppRoute.REGISTER) } // 添加注册导航
+                onNavigateToRegister = { navController.navigate(AppRoute.REGISTER) }, // 添加注册导航
+                onNavigateToAbout = { navController.navigate(AppRoute.ABOUT) }, // 添加关于页面导航
+                onNavigateToSettings = { navController.navigate(AppRoute.SETTINGS) } // 添加设置页面导航
             )
         }
 
@@ -244,7 +256,8 @@ fun AppNavigation(
                         launchSingleTop = true
                     }
                 },
-                onNavigateToRegister = { navController.navigate(AppRoute.REGISTER) }
+                onNavigateToRegister = { navController.navigate(AppRoute.REGISTER) },
+                onNavigateBack = { navController.popBackStack() } // 添加返回功能
             )
         }
 
@@ -274,6 +287,21 @@ fun AppNavigation(
                     }
                 },
                 onNavigateBack = { navController.popBackStack() }
+            )
+        }
+
+        // 关于应用页路由
+        composable(AppRoute.ABOUT) {
+            AboutScreen(
+                onNavigateBack = { navController.popBackStack() }
+            )
+        }
+
+        // 设置页路由
+        composable(AppRoute.SETTINGS) {
+            SettingsScreen(
+                onNavigateBack = { navController.popBackStack() },
+                viewModel = settingsViewModel
             )
         }
     }

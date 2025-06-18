@@ -26,6 +26,9 @@ class NewsViewModel : ViewModel() {
     private val _searchQuery = MutableStateFlow("")
     val searchQuery: StateFlow<String> = _searchQuery
 
+    private val _selectedTabIndex = MutableStateFlow(0)
+    val selectedTabIndex: StateFlow<Int> = _selectedTabIndex
+
     private val apiKey = "ragflow-ExZjM1NmYyNDc3NDExZjBhMTIxZmVjY2"
     private val datasetId = "bfd51b5e475d11f0850dfecceaed7a8e"
 
@@ -119,5 +122,9 @@ class NewsViewModel : ViewModel() {
                 println("RAGFLOW请求异常: ${e.message}")
             }
         }
+    }
+
+    fun updateSelectedTabIndex(index: Int) {
+        _selectedTabIndex.value = index
     }
 } 

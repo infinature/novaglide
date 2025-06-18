@@ -50,6 +50,7 @@ fun HomeScreen(
 ) {
     val newsList by newsViewModel.newsList.collectAsState()
     val searchQuery by newsViewModel.searchQuery.collectAsState()
+    val selectedTabIndex by newsViewModel.selectedTabIndex.collectAsState()
     val keyboardController = LocalSoftwareKeyboardController.current
 
     LaunchedEffect(Unit) {
@@ -57,7 +58,6 @@ fun HomeScreen(
             newsViewModel.fetchNews()
         }
     }
-    var selectedTabIndex by remember { mutableStateOf(0) }
     val tabs = listOf("保研", "考研", "留学", "考公", "推荐")
     val currentUserState by userInfoViewModel.userInfoState.collectAsState()
     val displayedNewsItems = remember(selectedTabIndex, newsList) {
@@ -72,18 +72,19 @@ fun HomeScreen(
                 TabRow(
                     selectedTabIndex = selectedTabIndex,
                     modifier = Modifier.fillMaxWidth(),
-                    containerColor = Color.White,
-                    contentColor = Color.Black,
+                    containerColor = MaterialTheme.colorScheme.surface,
+                    contentColor = MaterialTheme.colorScheme.onSurface,
                 ) {
                     tabs.forEachIndexed { index, title ->
                         Tab(
                             selected = selectedTabIndex == index,
-                            onClick = { selectedTabIndex = index },
+                            onClick = { newsViewModel.updateSelectedTabIndex(index) },
                             text = { 
                                 Text(
                                     text = title,
                                     fontSize = 16.sp,
-                                    fontWeight = if (selectedTabIndex == index) FontWeight.Bold else FontWeight.Normal
+                                    fontWeight = if (selectedTabIndex == index) FontWeight.Bold else FontWeight.Normal,
+                                    color = MaterialTheme.colorScheme.onSurface
                                 ) 
                             }
                         )
@@ -98,7 +99,7 @@ fun HomeScreen(
                         .heightIn(min = 56.dp)
                         .clickable { onNavigateToSearch() },
                     shape = RoundedCornerShape(24.dp),
-                    color = Color(0xFFF5F5F5)
+                    color = MaterialTheme.colorScheme.surfaceVariant
                 ) {
                     Row(
                         modifier = Modifier
@@ -110,13 +111,13 @@ fun HomeScreen(
                             Icons.Outlined.Search, 
                             contentDescription = "搜索",
                             modifier = Modifier.size(20.dp),
-                            tint = Color.Gray
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant
                         )
                         Spacer(modifier = Modifier.width(12.dp))
                         Text(
                             text = if (searchQuery.isNotEmpty()) searchQuery else "搜索资讯",
                             fontSize = 16.sp,
-                            color = if (searchQuery.isNotEmpty()) MaterialTheme.colorScheme.onSurface else Color.Gray
+                            color = if (searchQuery.isNotEmpty()) MaterialTheme.colorScheme.onSurface else MaterialTheme.colorScheme.onSurfaceVariant
                         )
                     }
                 }
@@ -136,6 +137,7 @@ fun HomeScreen(
                     text = "资讯标题",
                     fontSize = 18.sp,
                     fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.onBackground,
                     modifier = Modifier.padding(start = 16.dp, top = 16.dp, bottom = 8.dp)
                 )
             }
@@ -182,18 +184,19 @@ fun NewsCard(newsArticle: NewsArticle, onClick: () -> Unit) {
             .fillMaxWidth()
             .clickable { onClick() },
         elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
-        colors = CardDefaults.cardColors(containerColor = Color.White)
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
     ) {
         Column(modifier = Modifier.padding(16.dp)) {
             Text(
                 text = newsArticle.title,
                 fontSize = 16.sp,
-                fontWeight = FontWeight.Bold
+                fontWeight = FontWeight.Bold,
+                color = MaterialTheme.colorScheme.onSurface
             )
             Text(
                 text = newsArticle.summary,
                 fontSize = 14.sp,
-                color = Color.Gray,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
                 maxLines = 2,
                 overflow = TextOverflow.Ellipsis,
                 modifier = Modifier.padding(vertical = 8.dp)
@@ -206,18 +209,18 @@ fun NewsCard(newsArticle: NewsArticle, onClick: () -> Unit) {
                 Text(
                     text = "来源: ${newsArticle.source} · ${formatPublishTime(newsArticle.publishTime)}",
                     fontSize = 12.sp,
-                    color = Color.Gray
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
                 Box(
                     modifier = Modifier
                         .clip(RoundedCornerShape(16.dp))
-                        .background(Color(0xFFEEEEEE))
+                        .background(MaterialTheme.colorScheme.primaryContainer)
                         .padding(horizontal = 12.dp, vertical = 4.dp)
                 ) {
                     Text(
                         text = newsArticle.category,
                         fontSize = 12.sp,
-                        color = Color.Black
+                        color = MaterialTheme.colorScheme.onPrimaryContainer
                     )
                 }
             }
