@@ -16,6 +16,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.sdu.novaglide.ui.theme.scaledSp
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -32,9 +33,9 @@ fun AboutScreen(
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = MaterialTheme.colorScheme.primary,
-                    titleContentColor = Color.White,
-                    navigationIconContentColor = Color.White
+                    containerColor = MaterialTheme.colorScheme.surface,
+                    titleContentColor = MaterialTheme.colorScheme.onSurface,
+                    navigationIconContentColor = MaterialTheme.colorScheme.onSurface
                 )
             )
         }
@@ -52,7 +53,7 @@ fun AboutScreen(
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(bottom = 16.dp),
-                colors = CardDefaults.cardColors(containerColor = Color.White),
+                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
                 elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
             ) {
                 Column(
@@ -80,22 +81,22 @@ fun AboutScreen(
                     
                     Text(
                         text = "NovaGlide",
-                        fontSize = 24.sp,
+                        fontSize = 24.sp.scaledSp(),
                         fontWeight = FontWeight.Bold,
                         color = MaterialTheme.colorScheme.primary
                     )
                     
                     Text(
                         text = "职业生涯规划助手",
-                        fontSize = 16.sp,
-                        color = Color.Gray,
+                        fontSize = 16.sp.scaledSp(),
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
                         modifier = Modifier.padding(top = 4.dp)
                     )
                     
                     Text(
                         text = "版本 1.0.0",
-                        fontSize = 14.sp,
-                        color = Color.Gray,
+                        fontSize = 14.sp.scaledSp(),
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
                         modifier = Modifier.padding(top = 8.dp)
                     )
                 }
@@ -108,9 +109,9 @@ fun AboutScreen(
             ) {
                 Text(
                     text = "NovaGlide 是一款专为大学生设计的职业生涯规划应用，提供保研、考研、留学、考公等多方向的资讯和智能问答服务，帮助你找到最适合的发展道路。",
-                    fontSize = 14.sp,
-                    lineHeight = 20.sp,
-                    color = Color.Gray
+                    fontSize = 14.sp.scaledSp(),
+                    lineHeight = 20.sp.scaledSp(),
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             }
             
@@ -131,9 +132,9 @@ fun AboutScreen(
                 features.forEach { feature ->
                     Text(
                         text = feature,
-                        fontSize = 14.sp,
+                        fontSize = 14.sp.scaledSp(),
                         modifier = Modifier.padding(vertical = 2.dp),
-                        color = Color.Gray
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 }
             }
@@ -145,9 +146,9 @@ fun AboutScreen(
             ) {
                 Text(
                     text = "由山东大学计算机学院团队开发\n致力于为大学生提供优质的职业规划服务",
-                    fontSize = 14.sp,
-                    lineHeight = 20.sp,
-                    color = Color.Gray,
+                    fontSize = 14.sp.scaledSp(),
+                    lineHeight = 20.sp.scaledSp(),
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
                     textAlign = TextAlign.Center
                 )
             }
@@ -198,10 +199,10 @@ fun AboutScreen(
             // 版权信息
             Text(
                 text = "© 2024 NovaGlide Team\nAll Rights Reserved",
-                fontSize = 12.sp,
-                color = Color.Gray,
+                fontSize = 12.sp.scaledSp(),
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
                 textAlign = TextAlign.Center,
-                lineHeight = 16.sp
+                lineHeight = 16.sp.scaledSp()
             )
         }
     }
@@ -217,7 +218,7 @@ private fun AboutCard(
         modifier = Modifier
             .fillMaxWidth()
             .padding(bottom = 12.dp),
-        colors = CardDefaults.cardColors(containerColor = Color.White),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
         elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
     ) {
         Column(
@@ -238,7 +239,7 @@ private fun AboutCard(
                 Spacer(modifier = Modifier.width(8.dp))
                 Text(
                     text = title,
-                    fontSize = 16.sp,
+                    fontSize = 16.sp.scaledSp(),
                     fontWeight = FontWeight.Medium,
                     color = MaterialTheme.colorScheme.onSurface
                 )
@@ -264,18 +265,18 @@ private fun ContactItem(
         Icon(
             icon,
             contentDescription = null,
-            tint = Color.Gray,
+            tint = MaterialTheme.colorScheme.onSurfaceVariant,
             modifier = Modifier.size(16.dp)
         )
         Spacer(modifier = Modifier.width(8.dp))
         Text(
             text = "$label: ",
-            fontSize = 14.sp,
-            color = Color.Gray
+            fontSize = 14.sp.scaledSp(),
+            color = MaterialTheme.colorScheme.onSurfaceVariant
         )
         Text(
             text = value,
-            fontSize = 14.sp,
+            fontSize = 14.sp.scaledSp(),
             color = MaterialTheme.colorScheme.primary
         )
     }

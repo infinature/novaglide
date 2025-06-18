@@ -23,6 +23,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.sdu.novaglide.R // 假设 R 文件存在且包含 avatar_placeholder
 import com.sdu.novaglide.ui.components.BottomNavBar
+import com.sdu.novaglide.ui.theme.scaledSp
 
 @Composable
 fun ProfileScreen(
@@ -44,7 +45,7 @@ fun ProfileScreen(
 
     // 在应用启动时尝试加载用户信息
     LaunchedEffect(Unit) {
-        viewModel.loadCurrentUserInfo()
+            viewModel.loadCurrentUserInfo()
     }
 
     Scaffold(
@@ -68,50 +69,50 @@ fun ProfileScreen(
             when (val state = userInfoState) {
                 is UserInfoState.Success -> {
                     // 已登录状态：显示用户信息
-                    Card(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(16.dp)
-                            .clickable { onNavigateToUserInfo() },
-                        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
+            Card(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(16.dp)
+                    .clickable { onNavigateToUserInfo() },
+                elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
                         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
-                    ) {
-                        Row(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(16.dp),
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
+            ) {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(16.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
                             // 用户头像
-                            Box(
-                                modifier = Modifier
-                                    .size(64.dp)
-                                    .clip(CircleShape)
+                    Box(
+                        modifier = Modifier
+                            .size(64.dp)
+                            .clip(CircleShape)
                                     .background(MaterialTheme.colorScheme.primary),
-                                contentAlignment = Alignment.Center
-                            ) {
+                        contentAlignment = Alignment.Center
+                    ) {
                                 if (state.userInfo.nickname.isNotEmpty()) {
                                     Text(
                                         text = state.userInfo.nickname.first().toString(),
-                                        fontSize = 24.sp,
+                                        fontSize = 24.sp.scaledSp(),
                                         color = MaterialTheme.colorScheme.onPrimary,
                                         fontWeight = FontWeight.Bold
                                     )
-                                }
-                            }
-                            
-                            Spacer(modifier = Modifier.width(16.dp))
-                            
-                            Column {
+                        }
+                    }
+                    
+                    Spacer(modifier = Modifier.width(16.dp))
+                    
+                    Column {
                                 Text(
-                                    text = state.userInfo.nickname,
-                                    fontSize = 20.sp,
+                                    text = state.userInfo.nickname, 
+                                    fontSize = 20.sp.scaledSp(),
                                     fontWeight = FontWeight.Bold,
                                     color = MaterialTheme.colorScheme.onSurface
                                 )
                                 Text(
                                     text = state.userInfo.bio.take(30) + if (state.userInfo.bio.length > 30) "..." else "",
-                                    fontSize = 14.sp,
+                                    fontSize = 14.sp.scaledSp(),
                                     color = MaterialTheme.colorScheme.onSurfaceVariant
                                 )
                             }
@@ -153,14 +154,14 @@ fun ProfileScreen(
                             
                             Text(
                                 text = "欢迎使用 NovaGlide",
-                                fontSize = 20.sp,
+                                fontSize = 20.sp.scaledSp(),
                                 fontWeight = FontWeight.Bold,
                                 color = MaterialTheme.colorScheme.onSurface
                             )
                             
                             Text(
                                 text = "登录后享受更多功能",
-                                fontSize = 14.sp,
+                                fontSize = 14.sp.scaledSp(),
                                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                                 modifier = Modifier.padding(vertical = 8.dp)
                             )
@@ -202,7 +203,7 @@ fun ProfileScreen(
                         // 已登录状态：显示完整功能列表
                         ProfileMenuItem(icon = Icons.Filled.Favorite, title = "我的收藏", onClick = onNavigateToFavorites)
                         ProfileMenuItem(icon = Icons.Filled.History, title = "浏览历史", onClick = onNavigateToBrowsingHistory)
-                        ProfileMenuItem(icon = Icons.Filled.Edit, title = "信息编辑", onClick = onNavigateToEditUserInfo)
+                ProfileMenuItem(icon = Icons.Filled.Edit, title = "信息编辑", onClick = onNavigateToEditUserInfo)
                         
                         // 分隔线
                         Spacer(modifier = Modifier.height(8.dp))
@@ -214,7 +215,7 @@ fun ProfileScreen(
                         // 分隔线
                         Spacer(modifier = Modifier.height(8.dp))
                         
-                        ProfileMenuItem(icon = Icons.Filled.ExitToApp, title = "退出登录", onClick = {
+                ProfileMenuItem(icon = Icons.Filled.ExitToApp, title = "退出登录", onClick = {
                             viewModel.logout()
                             onNavigateToLogout()
                         })

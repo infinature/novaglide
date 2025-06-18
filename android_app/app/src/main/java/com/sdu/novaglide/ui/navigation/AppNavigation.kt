@@ -170,7 +170,7 @@ fun AppNavigation(
                     // 退出登录后留在首页，不跳转到登录页
                     navController.navigate(AppRoute.HOME) {
                         popUpTo(AppRoute.HOME) { inclusive = true }
-                        launchSingleTop = true
+                        launchSingleTop = true 
                     }
                 },
                 onNavigateToEditUserInfo = { navController.navigate(AppRoute.EDIT_USER_INFO) },

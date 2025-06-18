@@ -89,27 +89,27 @@ class MainActivity : ComponentActivity() {
 
         setContent {
             AppContent(
-                determinedStartDestination = determinedStartDestination,
-                initializationError = initializationError,
+                        determinedStartDestination = determinedStartDestination,
+                        initializationError = initializationError,
                 dependenciesInitialized = dependenciesInitialized,
                 chatRepository = if (dependenciesInitialized) chatRepository else null,
                 apiKeyStore = if (dependenciesInitialized) apiKeyStore else null,
-                onRetry = {
-                    // 重置状态并重试初始化
-                    determinedStartDestination = null
-                    initializationError = null
+                        onRetry = {
+                            // 重置状态并重试初始化
+                            determinedStartDestination = null
+                            initializationError = null
                     dependenciesInitialized = false
-                    CoroutineScope(Dispatchers.Main).launch {
-                        try {
-                            initDependencies()
-                            checkFirstRunAndUserStatus()
-                        } catch (e: Exception) {
-                            Log.e(TAG, "重试初始化失败", e)
-                            initializationError = "应用初始化失败: ${e.message}"
+                            CoroutineScope(Dispatchers.Main).launch {
+                                try {
+                                    initDependencies()
+                                    checkFirstRunAndUserStatus()
+                                } catch (e: Exception) {
+                                    Log.e(TAG, "重试初始化失败", e)
+                                    initializationError = "应用初始化失败: ${e.message}"
+                                }
+                            }
                         }
-                    }
-                }
-            )
+                    )
         }
     }
     
@@ -213,15 +213,21 @@ fun AppContent(
     apiKeyStore: ApiKeyStore?,
     onRetry: () -> Unit
 ) {
-    // 读取深色模式设置
+    // 读取深色模式和字体大小设置
     val context = LocalContext.current
     val darkModeKey = booleanPreferencesKey("dark_mode")
+    val fontSizeKey = androidx.datastore.preferences.core.floatPreferencesKey("font_size")
     val systemDarkTheme = isSystemInDarkTheme()
+    
     val isDarkMode by context.settingsDataStore.data
         .map { preferences -> preferences[darkModeKey] ?: systemDarkTheme }
         .collectAsState(initial = systemDarkTheme)
+        
+    val fontScale by context.settingsDataStore.data
+        .map { preferences -> preferences[fontSizeKey] ?: 1f }
+        .collectAsState(initial = 1f)
     
-    NovaGlideTheme(darkTheme = isDarkMode) {
+    NovaGlideTheme(darkTheme = isDarkMode, fontScale = fontScale) {
         Surface(
             modifier = Modifier.fillMaxSize(),
             color = MaterialTheme.colorScheme.background

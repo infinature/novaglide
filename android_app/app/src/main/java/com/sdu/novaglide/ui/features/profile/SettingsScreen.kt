@@ -14,6 +14,7 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.sdu.novaglide.ui.theme.scaledSp
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -97,7 +98,7 @@ fun SettingsScreen(
                         ) {
                             Icon(Icons.Filled.Remove, contentDescription = "减小")
                         }
-                        Text("Aa", fontSize = (16 * fontSize).sp)
+                        Text("Aa", fontSize = (16 * fontSize).sp.scaledSp())
                         IconButton(
                             onClick = { 
                                 if (fontSize < 1.2f) {
@@ -133,7 +134,7 @@ fun SettingsScreen(
                     subtitle = "设置接收通知的时间段"
                 ) {
                     TextButton(onClick = { /* TODO: 打开时间选择器 */ }) {
-                        Text("${String.format("%02d", notificationStartHour)}:00-${String.format("%02d", notificationEndHour)}:00")
+                        Text("${String.format("%02d", notificationStartHour)}:00-${String.format("%02d", notificationEndHour)}:00", fontSize = 14.sp.scaledSp())
                     }
                 }
             }
@@ -163,12 +164,12 @@ fun SettingsScreen(
                         TextButton(
                             onClick = { viewModel.clearCache() }
                         ) {
-                            Text("清理", color = MaterialTheme.colorScheme.primary)
+                            Text("清理", color = MaterialTheme.colorScheme.primary, fontSize = 14.sp.scaledSp())
                         }
                         clearCacheResult?.let { result ->
                             Text(
                                 text = result,
-                                fontSize = 12.sp,
+                                fontSize = 12.sp.scaledSp(),
                                 color = MaterialTheme.colorScheme.primary
                             )
                         }
@@ -226,7 +227,7 @@ fun SettingsScreen(
                     subtitle = "简体中文"
                 ) {
                     TextButton(onClick = { /* 打开语言选择 */ }) {
-                        Text("中文")
+                        Text("中文", fontSize = 14.sp.scaledSp())
                     }
                 }
                 
@@ -240,7 +241,7 @@ fun SettingsScreen(
                             // TODO: 实现更新检查功能
                         }
                     ) {
-                        Text("检查", color = MaterialTheme.colorScheme.primary)
+                        Text("检查", color = MaterialTheme.colorScheme.primary, fontSize = 14.sp.scaledSp())
                     }
                 }
                 
@@ -252,7 +253,7 @@ fun SettingsScreen(
                     TextButton(
                         onClick = { viewModel.restoreDefaultSettings() }
                     ) {
-                        Text("恢复", color = MaterialTheme.colorScheme.error)
+                        Text("恢复", color = MaterialTheme.colorScheme.error, fontSize = 14.sp.scaledSp())
                     }
                 }
             }
@@ -262,7 +263,7 @@ fun SettingsScreen(
             // 底部说明
             Text(
                 text = "设置将自动保存",
-                fontSize = 12.sp,
+                fontSize = 12.sp.scaledSp(),
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 modifier = Modifier.fillMaxWidth()
             )

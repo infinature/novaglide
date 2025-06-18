@@ -30,6 +30,7 @@ import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.sdu.novaglide.ui.components.BottomNavBar
+import com.sdu.novaglide.ui.theme.scaledSp
 import com.sdu.novaglide.ui.features.profile.BrowsingHistoryViewModel
 import com.sdu.novaglide.ui.features.profile.UserInfoState
 import com.sdu.novaglide.ui.features.profile.UserInfoViewModel
@@ -82,9 +83,9 @@ fun HomeScreen(
                             text = { 
                                 Text(
                                     text = title,
-                                    fontSize = 16.sp,
-                                    fontWeight = if (selectedTabIndex == index) FontWeight.Bold else FontWeight.Normal,
-                                    color = MaterialTheme.colorScheme.onSurface
+                                fontSize = 16.sp.scaledSp(),
+                                fontWeight = if (selectedTabIndex == index) FontWeight.Bold else FontWeight.Normal,
+                                color = MaterialTheme.colorScheme.onSurface
                                 ) 
                             }
                         )
@@ -116,10 +117,10 @@ fun HomeScreen(
                         Spacer(modifier = Modifier.width(12.dp))
                         Text(
                             text = if (searchQuery.isNotEmpty()) searchQuery else "搜索资讯",
-                            fontSize = 16.sp,
+                            fontSize = 16.sp.scaledSp(),
                             color = if (searchQuery.isNotEmpty()) MaterialTheme.colorScheme.onSurface else MaterialTheme.colorScheme.onSurfaceVariant
                         )
-                    }
+                        }
                 }
                 
                 // 二级标题
@@ -135,7 +136,7 @@ fun HomeScreen(
                 // 从现有代码看，这里只是一个静态标题 "资讯标题"
                 Text(
                     text = "资讯标题",
-                    fontSize = 18.sp,
+                    fontSize = 18.sp.scaledSp(),
                     fontWeight = FontWeight.Bold,
                     color = MaterialTheme.colorScheme.onBackground,
                     modifier = Modifier.padding(start = 16.dp, top = 16.dp, bottom = 8.dp)
@@ -189,13 +190,13 @@ fun NewsCard(newsArticle: NewsArticle, onClick: () -> Unit) {
         Column(modifier = Modifier.padding(16.dp)) {
             Text(
                 text = newsArticle.title,
-                fontSize = 16.sp,
+                fontSize = 16.sp.scaledSp(),
                 fontWeight = FontWeight.Bold,
                 color = MaterialTheme.colorScheme.onSurface
             )
             Text(
                 text = newsArticle.summary,
-                fontSize = 14.sp,
+                fontSize = 14.sp.scaledSp(),
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 maxLines = 2,
                 overflow = TextOverflow.Ellipsis,
@@ -208,7 +209,7 @@ fun NewsCard(newsArticle: NewsArticle, onClick: () -> Unit) {
             ) {
                 Text(
                     text = "来源: ${newsArticle.source} · ${formatPublishTime(newsArticle.publishTime)}",
-                    fontSize = 12.sp,
+                    fontSize = 12.sp.scaledSp(),
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
                 Box(
@@ -219,7 +220,7 @@ fun NewsCard(newsArticle: NewsArticle, onClick: () -> Unit) {
                 ) {
                     Text(
                         text = newsArticle.category,
-                        fontSize = 12.sp,
+                        fontSize = 12.sp.scaledSp(),
                         color = MaterialTheme.colorScheme.onPrimaryContainer
                     )
                 }

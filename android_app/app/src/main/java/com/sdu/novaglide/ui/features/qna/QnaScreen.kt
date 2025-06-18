@@ -21,6 +21,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
+import com.sdu.novaglide.ui.theme.scaledSp
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -59,7 +60,7 @@ fun QnaScreen(
                     Text(
                         text = "智能问答",
                         fontWeight = FontWeight.Bold,
-                        fontSize = 18.sp
+                        fontSize = 18.sp.scaledSp()
                     ) 
                 },
                 navigationIcon = {
@@ -154,7 +155,7 @@ fun QnaScreen(
                     modifier = Modifier.padding(end = 8.dp),
                     shape = RoundedCornerShape(16.dp)
                 ) {
-                    Text("DeepSeek")
+                    Text("DeepSeek", fontSize = 14.sp.scaledSp())
                 }
                 
                 // RAGFlow 按钮
@@ -169,7 +170,7 @@ fun QnaScreen(
                     modifier = Modifier.padding(start = 8.dp),
                     shape = RoundedCornerShape(16.dp)
                 ) {
-                    Text("RAGFLOW")
+                    Text("RAGFLOW", fontSize = 14.sp.scaledSp())
                 }
             }
             
@@ -186,7 +187,7 @@ fun QnaScreen(
                     modifier = Modifier
                         .weight(1f)
                         .heightIn(min = 56.dp),
-                    placeholder = { Text("请输入问题") },
+                    placeholder = { Text("请输入问题", fontSize = 16.sp.scaledSp()) },
                     shape = RoundedCornerShape(28.dp),
                     colors = OutlinedTextFieldDefaults.colors(
                         unfocusedContainerColor = MaterialTheme.colorScheme.surfaceVariant,

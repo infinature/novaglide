@@ -24,6 +24,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.sdu.novaglide.data.local.entity.SearchHistoryEntity
+import com.sdu.novaglide.ui.theme.scaledSp
 import com.sdu.novaglide.ui.features.profile.UserInfoState
 import com.sdu.novaglide.ui.features.profile.UserInfoViewModel
 import java.text.SimpleDateFormat
@@ -85,10 +86,10 @@ fun SearchScreen(
                         placeholder = { 
                             Text(
                                 text = "搜索资讯",
-                                fontSize = 16.sp
+                                fontSize = 16.sp.scaledSp()
                             ) 
                         },
-                        textStyle = androidx.compose.ui.text.TextStyle(fontSize = 16.sp),
+                        textStyle = androidx.compose.ui.text.TextStyle(fontSize = 16.sp.scaledSp()),
                         singleLine = true,
                         shape = RoundedCornerShape(24.dp),
                         colors = OutlinedTextFieldDefaults.colors(
@@ -127,7 +128,7 @@ fun SearchScreen(
                                 }
                             }
                         ) {
-                            Text("搜索", color = MaterialTheme.colorScheme.primary)
+                            Text("搜索", color = MaterialTheme.colorScheme.primary, fontSize = 14.sp.scaledSp())
                         }
                     }
                 }
@@ -209,7 +210,7 @@ private fun SearchSuggestionsSection(
     Column {
         Text(
             text = "搜索建议",
-            fontSize = 16.sp,
+            fontSize = 16.sp.scaledSp(),
             fontWeight = FontWeight.Bold,
             color = MaterialTheme.colorScheme.onSurface,
             modifier = Modifier.padding(bottom = 8.dp)
@@ -232,7 +233,7 @@ private fun SearchSuggestionsSection(
                 Spacer(modifier = Modifier.width(12.dp))
                 Text(
                     text = suggestion,
-                    fontSize = 14.sp,
+                    fontSize = 14.sp.scaledSp(),
                     color = MaterialTheme.colorScheme.onSurface,
                     modifier = Modifier.weight(1f)
                 )
@@ -260,7 +261,7 @@ private fun HotSearchesSection(
             Spacer(modifier = Modifier.width(8.dp))
             Text(
                 text = "热门搜索",
-                fontSize = 16.sp,
+                fontSize = 16.sp.scaledSp(),
                 fontWeight = FontWeight.Bold,
                 color = MaterialTheme.colorScheme.onSurface
             )
@@ -278,7 +279,7 @@ private fun HotSearchesSection(
                     Text(
                         text = hotSearch,
                         modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
-                        fontSize = 12.sp,
+                        fontSize = 12.sp.scaledSp(),
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis
@@ -314,7 +315,7 @@ private fun SearchHistorySection(
                 Spacer(modifier = Modifier.width(8.dp))
                 Text(
                     text = "搜索历史",
-                    fontSize = 16.sp,
+                    fontSize = 16.sp.scaledSp(),
                     fontWeight = FontWeight.Bold,
                     color = MaterialTheme.colorScheme.onSurface
                 )
@@ -323,7 +324,7 @@ private fun SearchHistorySection(
             TextButton(onClick = onClearAllHistory) {
                 Text(
                     text = "清空",
-                    fontSize = 12.sp,
+                    fontSize = 12.sp.scaledSp(),
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             }
@@ -347,14 +348,14 @@ private fun SearchHistorySection(
                 Column(modifier = Modifier.weight(1f)) {
                     Text(
                         text = historyItem.searchQuery,
-                        fontSize = 14.sp,
+                        fontSize = 14.sp.scaledSp(),
                         color = MaterialTheme.colorScheme.onSurface,
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis
                     )
                     Text(
                         text = formatSearchTime(historyItem.searchTime),
-                        fontSize = 12.sp,
+                        fontSize = 12.sp.scaledSp(),
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 }

@@ -9,12 +9,17 @@ import androidx.compose.material3.dynamicDarkColorScheme
 import androidx.compose.material3.dynamicLightColorScheme
 import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.SideEffect
+import androidx.compose.runtime.compositionLocalOf
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalView
 import androidx.core.view.WindowCompat
+
+// 字体大小缩放的CompositionLocal
+val LocalFontScale = compositionLocalOf { 1f }
 
 private val DarkColorScheme = darkColorScheme(
     primary = DarkPrimary,
@@ -50,6 +55,7 @@ private val LightColorScheme = lightColorScheme(
 @Composable
 fun NovaGlideTheme(
     darkTheme: Boolean = isSystemInDarkTheme(),
+    fontScale: Float = 1f, // 添加字体缩放参数
     // Dynamic color is available on Android 12+.
     // Dynamic color in Compose is experimental and currently only supports Material3.
     dynamicColor: Boolean = true,
@@ -72,10 +78,12 @@ fun NovaGlideTheme(
         }
     }
 
-    MaterialTheme(
-        colorScheme = colorScheme,
-        typography = Typography, // Assumes Typography.kt is in the same package
-        shapes = Shapes, // Assumes Shapes.kt is in the same package
-        content = content
-    )
+    CompositionLocalProvider(LocalFontScale provides fontScale) {
+        MaterialTheme(
+            colorScheme = colorScheme,
+            typography = Typography, // Assumes Typography.kt is in the same package
+            shapes = Shapes, // Assumes Shapes.kt is in the same package
+            content = content
+        )
+    }
 } 
