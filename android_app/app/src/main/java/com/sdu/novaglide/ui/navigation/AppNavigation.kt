@@ -37,6 +37,15 @@ import com.sdu.novaglide.ui.features.search.SearchViewModel
 import com.sdu.novaglide.ui.features.profile.AboutScreen
 import com.sdu.novaglide.ui.features.profile.SettingsScreen
 import com.sdu.novaglide.ui.features.profile.SettingsViewModel
+import com.sdu.novaglide.ui.features.profile.PrivacyPolicyScreen
+import com.sdu.novaglide.ui.features.profile.UserAgreementScreen
+import com.sdu.novaglide.ui.features.profile.OpenSourceLicenseScreen
+import com.sdu.novaglide.ui.features.splash.SplashScreen
+import com.sdu.novaglide.ui.features.agreement.AgreementConsentScreen
+import com.sdu.novaglide.core.util.AgreementManager
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
 
 private const val TAG_NAV = "AppNavigation"
 
@@ -59,6 +68,11 @@ object AppRoute {
     const val SEARCH = "search" // <-- 添加 SEARCH 路由
     const val ABOUT = "about" // <-- 添加 ABOUT 路由
     const val SETTINGS = "settings" // <-- 添加 SETTINGS 路由
+    const val PRIVACY_POLICY = "privacy_policy" // <-- 添加隐私政策路由
+    const val USER_AGREEMENT = "user_agreement" // <-- 添加用户协议路由
+    const val OPEN_SOURCE_LICENSE = "open_source_license" // <-- 添加开源许可路由
+    const val SPLASH = "splash" // <-- 添加启动页路由
+    const val AGREEMENT_CONSENT = "agreement_consent" // <-- 添加协议同意页路由
 } // <-- 移除末尾的 */
 
  /**
@@ -70,7 +84,8 @@ fun AppNavigation(
     navController: NavHostController = rememberNavController(),
     startDestination: String, // Changed: No default, will be provided by MainActivity
     chatRepository: ChatRepository,
-    apiKeyStore: ApiKeyStore
+    apiKeyStore: ApiKeyStore,
+    agreementManager: AgreementManager
 ) {
     val context = LocalContext.current
     val application = context.applicationContext as NovaGlideApplication
@@ -93,7 +108,7 @@ fun AppNavigation(
     }
 
     // NewsViewModel 单例
-    val newsViewModel: NewsViewModel = remember { NewsViewModel() }
+    val newsViewModel: NewsViewModel = remember { NewsViewModel(context) }
     
     // SearchViewModel 实例
     val searchViewModel: SearchViewModel = remember {
@@ -114,6 +129,47 @@ fun AppNavigation(
         startDestination = startDestination, 
         modifier = modifier
     ) {
+        // 启动页
+        composable(AppRoute.SPLASH) {
+            SplashScreen(
+                onSplashFinished = {
+                    navController.navigate(AppRoute.HOME) {
+                        popUpTo(AppRoute.SPLASH) { inclusive = true }
+                        launchSingleTop = true
+                    }
+                },
+                onAgreementRequired = {
+                    navController.navigate(AppRoute.AGREEMENT_CONSENT) {
+                        popUpTo(AppRoute.SPLASH) { inclusive = true }
+                        launchSingleTop = true
+                    }
+                }
+            )
+        }
+
+        // 协议同意页
+        composable(AppRoute.AGREEMENT_CONSENT) {
+            AgreementConsentScreen(
+                onAgreementAccepted = {
+                    // 保存用户同意状态
+                    CoroutineScope(Dispatchers.IO).launch {
+                        agreementManager.acceptAllAgreements()
+                        Log.d(TAG_NAV, "用户已同意所有协议，跳转到启动页")
+                    }
+                    
+                    navController.navigate(AppRoute.SPLASH) {
+                        popUpTo(AppRoute.AGREEMENT_CONSENT) { inclusive = true }
+                        launchSingleTop = true
+                    }
+                },
+                onPrivacyPolicyClick = {
+                    navController.navigate(AppRoute.PRIVACY_POLICY)
+                },
+                onUserAgreementClick = {
+                    navController.navigate(AppRoute.USER_AGREEMENT)
+                }
+            )
+        }
         // 首页
         composable(AppRoute.HOME) {
             HomeScreen(
@@ -293,7 +349,10 @@ fun AppNavigation(
         // 关于应用页路由
         composable(AppRoute.ABOUT) {
             AboutScreen(
-                onNavigateBack = { navController.popBackStack() }
+                onNavigateBack = { navController.popBackStack() },
+                onNavigateToPrivacyPolicy = { navController.navigate(AppRoute.PRIVACY_POLICY) },
+                onNavigateToUserAgreement = { navController.navigate(AppRoute.USER_AGREEMENT) },
+                onNavigateToOpenSourceLicense = { navController.navigate(AppRoute.OPEN_SOURCE_LICENSE) }
             )
         }
 
@@ -302,6 +361,27 @@ fun AppNavigation(
             SettingsScreen(
                 onNavigateBack = { navController.popBackStack() },
                 viewModel = settingsViewModel
+            )
+        }
+
+        // 隐私政策页路由
+        composable(AppRoute.PRIVACY_POLICY) {
+            PrivacyPolicyScreen(
+                onNavigateBack = { navController.popBackStack() }
+            )
+        }
+
+        // 用户协议页路由
+        composable(AppRoute.USER_AGREEMENT) {
+            UserAgreementScreen(
+                onNavigateBack = { navController.popBackStack() }
+            )
+        }
+
+        // 开源许可页路由
+        composable(AppRoute.OPEN_SOURCE_LICENSE) {
+            OpenSourceLicenseScreen(
+                onNavigateBack = { navController.popBackStack() }
             )
         }
     }

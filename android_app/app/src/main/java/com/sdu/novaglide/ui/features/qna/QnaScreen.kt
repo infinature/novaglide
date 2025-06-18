@@ -19,9 +19,154 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.viewinterop.AndroidView
+import android.webkit.WebView
+import androidx.compose.foundation.isSystemInDarkTheme
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import com.sdu.novaglide.ui.theme.scaledSp
+
+@Composable
+fun MarkdownText(
+    content: String,
+    textColor: Color,
+    modifier: Modifier = Modifier
+) {
+    val isDarkTheme = isSystemInDarkTheme()
+    
+    val htmlContent = remember(content, isDarkTheme, textColor) {
+        // 清理内容
+        var processedContent = content
+            .replace(Regex("""<style[^>]*>.*?</style>""", RegexOption.DOT_MATCHES_ALL), "")
+            .replace(Regex("""style\s*=\s*["'][^"']*["']""", RegexOption.IGNORE_CASE), "")
+        
+        // 转义内容用于JavaScript
+        val escapedContent = processedContent
+            .replace("\\", "\\\\")
+            .replace("'", "\\'")
+            .replace("\"", "\\\"")
+            .replace("\n", "\\n")
+            .replace("\r", "")
+
+        // 根据主题选择CSS
+        val markdownCss = if (isDarkTheme) {
+            "https://cdnjs.cloudflare.com/ajax/libs/github-markdown-css/5.8.1/github-markdown-dark.min.css"
+        } else {
+            "https://cdnjs.cloudflare.com/ajax/libs/github-markdown-css/5.8.1/github-markdown-light.min.css"
+        }
+        
+        val highlightCss = if (isDarkTheme) {
+            "https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github-dark.min.css"
+        } else {
+            "https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github.min.css"
+        }
+
+        // 获取文字颜色的RGB值
+        val colorHex = String.format("#%06X", (0xFFFFFF and textColor.value.toInt()))
+
+        """
+        <!DOCTYPE html>
+        <html>
+        <head>
+            <meta name="viewport" content="width=device-width, initial-scale=1.0">
+            <link rel="stylesheet" href="$markdownCss">
+            <link rel="stylesheet" href="$highlightCss">
+            <style>
+                body {
+                    margin: 0;
+                    padding: 8px;
+                    background-color: transparent !important;
+                    font-size: 14px;
+                }
+                .markdown-body {
+                    box-sizing: border-box;
+                    background-color: transparent !important;
+                    color: $colorHex !important;
+                    font-size: 14px;
+                }
+                
+                ${if (isDarkTheme) """
+                /* 强制深色模式样式 */
+                * {
+                    background-color: transparent !important;
+                    color: $colorHex !important;
+                }
+                
+                pre, code {
+                    background-color: rgba(33, 38, 45, 0.5) !important;
+                    color: $colorHex !important;
+                    border: 1px solid rgba(48, 54, 61, 0.5) !important;
+                }
+                
+                blockquote {
+                    background-color: rgba(22, 27, 34, 0.5) !important;
+                    border-left: 4px solid rgba(48, 54, 61, 0.5) !important;
+                    color: $colorHex !important;
+                }
+                
+                table, th, td {
+                    background-color: transparent !important;
+                    color: $colorHex !important;
+                    border-color: rgba(48, 54, 61, 0.5) !important;
+                }
+                """ else "/* 浅色模式 */"}
+            </style>
+        </head>
+        <body>
+            <div id="content" class="markdown-body"></div>
+            <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+            <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
+            <script>
+                marked.setOptions({
+                  highlight: function(code, lang) {
+                    const language = hljs.getLanguage(lang) ? lang : 'plaintext';
+                    return hljs.highlight(code, { language }).value;
+                  }
+                });
+                document.getElementById('content').innerHTML = marked.parse('$escapedContent');
+            </script>
+        </body>
+        </html>
+        """.trimIndent()
+    }
+
+    AndroidView(
+        factory = { context ->
+            WebView(context).apply {
+                settings.javaScriptEnabled = true
+                settings.loadWithOverviewMode = true
+                settings.useWideViewPort = true
+                setBackgroundColor(android.graphics.Color.TRANSPARENT)
+                
+                // 配置深色模式支持
+                if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.Q) {
+                    @Suppress("DEPRECATION")
+                    settings.forceDark = if (isDarkTheme) {
+                        android.webkit.WebSettings.FORCE_DARK_ON
+                    } else {
+                        android.webkit.WebSettings.FORCE_DARK_OFF
+                    }
+                }
+            }
+        },
+        update = { webView ->
+            webView.setBackgroundColor(android.graphics.Color.TRANSPARENT)
+            
+            // 更新深色模式设置
+            if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.Q) {
+                @Suppress("DEPRECATION")
+                webView.settings.forceDark = if (isDarkTheme) {
+                    android.webkit.WebSettings.FORCE_DARK_ON
+                } else {
+                    android.webkit.WebSettings.FORCE_DARK_OFF
+                }
+            }
+            
+            webView.loadDataWithBaseURL(null, htmlContent, "text/html", "UTF-8", null)
+        },
+        modifier = modifier
+    )
+}
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -288,13 +433,24 @@ fun DomainMessageItem(message: com.sdu.novaglide.domain.model.ChatMessage) {
             } else {
                 // 添加日志跟踪消息内容
                 val displayContent = if (message.content.isBlank()) "(空内容)" else message.content
+                val textColor = if (message.role == com.sdu.novaglide.domain.model.MessageRole.USER) 
+                    MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurfaceVariant
                 
-                Text(
-                    text = displayContent,
-                    color = if (message.role == com.sdu.novaglide.domain.model.MessageRole.USER) 
-                        MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurfaceVariant,
-                    fontSize = 14.sp
-                )
+                // 如果是用户消息，使用普通Text；如果是AI回复，使用MarkdownText
+                if (message.role == com.sdu.novaglide.domain.model.MessageRole.USER) {
+                    Text(
+                        text = displayContent,
+                        color = textColor,
+                        fontSize = 14.sp
+                    )
+                } else {
+                    // AI回复使用Markdown渲染
+                    MarkdownText(
+                        content = displayContent,
+                        textColor = textColor,
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                }
                 
                 // 强制重组，确保内容显示
                 DisposableEffect(message.content) {

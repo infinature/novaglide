@@ -21,7 +21,10 @@ import com.sdu.novaglide.ui.theme.scaledSp
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun AboutScreen(
-    onNavigateBack: () -> Unit
+    onNavigateBack: () -> Unit,
+    onNavigateToPrivacyPolicy: () -> Unit = {},
+    onNavigateToUserAgreement: () -> Unit = {},
+    onNavigateToOpenSourceLicense: () -> Unit = {}
 ) {
     Scaffold(
         topBar = {
@@ -172,21 +175,21 @@ fun AboutScreen(
             ) {
                 Column {
                     TextButton(
-                        onClick = { /* 打开隐私政策 */ },
+                        onClick = onNavigateToPrivacyPolicy,
                         modifier = Modifier.fillMaxWidth()
                     ) {
                         Text("隐私政策", color = MaterialTheme.colorScheme.primary)
                     }
                     
                     TextButton(
-                        onClick = { /* 打开用户协议 */ },
+                        onClick = onNavigateToUserAgreement,
                         modifier = Modifier.fillMaxWidth()
                     ) {
                         Text("用户协议", color = MaterialTheme.colorScheme.primary)
                     }
                     
                     TextButton(
-                        onClick = { /* 打开开源许可 */ },
+                        onClick = onNavigateToOpenSourceLicense,
                         modifier = Modifier.fillMaxWidth()
                     ) {
                         Text("开源许可", color = MaterialTheme.colorScheme.primary)

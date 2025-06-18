@@ -68,6 +68,7 @@ dependencies {
     implementation("com.google.android.material:material:1.11.0")  // 添加 Material Design 依赖
     implementation("com.google.accompanist:accompanist-pager:0.32.0")
     implementation("com.google.accompanist:accompanist-pager-indicators:0.32.0")
+    implementation(libs.accompanist.swiperefresh)  // 添加下拉刷新支持
     implementation("androidx.compose.material:material-icons-extended:1.6.1")
 
     // Navigation Compose

@@ -31,6 +31,7 @@ import com.sdu.novaglide.core.constants.ApiConstants
 import com.sdu.novaglide.core.util.ApiKeyStore
 import com.sdu.novaglide.core.util.ApiKeyStore.Companion.dataStore
 import com.sdu.novaglide.core.util.settingsDataStore
+import com.sdu.novaglide.core.util.AgreementManager
 import com.sdu.novaglide.data.di.NetworkModule
 import com.sdu.novaglide.data.remote.api.RagFlowApiService
 import com.sdu.novaglide.data.repository.ChatRepository
@@ -56,6 +57,9 @@ class MainActivity : ComponentActivity() {
     
     // 聊天仓库
     private lateinit var chatRepository: ChatRepository
+    
+    // 协议管理器
+    private lateinit var agreementManager: AgreementManager
     
     // 指示是否是首次运行
     private val FIRST_RUN_KEY = booleanPreferencesKey(ApiConstants.PREF_FIRST_RUN)
@@ -123,6 +127,9 @@ class MainActivity : ComponentActivity() {
             // 初始化API密钥存储
             apiKeyStore = ApiKeyStore(applicationContext)
             
+            // 初始化协议管理器
+            agreementManager = AgreementManager(applicationContext)
+            
             // 使用NetworkModule创建依赖
             val okHttpClient = NetworkModule.provideOkHttpClient(isDebug = true)
             val deepSeekApiService = NetworkModule.provideDeepSeekApiService(okHttpClient)
@@ -188,9 +195,10 @@ class MainActivity : ComponentActivity() {
                         Log.d(TAG, "从DAO获取的当前用户 (isLoggedIn=true): userId=${currentUser.userId}, username=${currentUser.username}, isLoggedIn=${currentUser.isLoggedIn}")
                     }
 
-                    // 始终从首页开始，支持游客模式
-                    determinedStartDestination = AppRoute.HOME
-                    Log.d(TAG, "采用游客模式，起始页设置为: HOME")
+                    // 总是从启动页开始，在启动页中检查协议状态
+                    determinedStartDestination = AppRoute.SPLASH
+                    
+                    Log.d(TAG, "起始页设置为: SPLASH")
                     Log.d(TAG, "最终确定的起始路由 (determinedStartDestination): $determinedStartDestination")
                 }
                 Log.d(TAG, "首次运行和用户状态检查完成")
@@ -241,6 +249,7 @@ fun AppContent(
                         NovaGlideApp(
                             chatRepository = chatRepository,
                             apiKeyStore = apiKeyStore,
+                            agreementManager = null, // 将在AppNavigation中处理
                             initialRoute = startRoute // 传递给 NovaGlideApp
                         )
                     } else {
@@ -285,14 +294,20 @@ fun AppStartup(
 fun NovaGlideApp(
     chatRepository: ChatRepository,
     apiKeyStore: ApiKeyStore,
+    agreementManager: AgreementManager?,
     initialRoute: String // 添加起始目的地参数
 ) {
+    val context = LocalContext.current
+    val localAgreementManager = remember { AgreementManager(context) }
+    
     LaunchedEffect(key1 = Unit) {
         Log.d(TAG, "启动导航系统, 起始路由: $initialRoute")
     }
+    
     AppNavigation(
         chatRepository = chatRepository,
         apiKeyStore = apiKeyStore,
+        agreementManager = localAgreementManager,
         startDestination = initialRoute // 传递确定的起始目的地
     )
 }
