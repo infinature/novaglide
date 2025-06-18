@@ -60,6 +60,9 @@ class NewsViewModel : ViewModel() {
     }
 
     fun searchNews(query: String) {
+        // 更新搜索查询文本
+        _searchQuery.value = query
+        
         if (query.isBlank()) {
             _newsList.value = allNews
             return

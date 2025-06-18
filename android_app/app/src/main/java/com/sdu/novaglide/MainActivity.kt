@@ -190,13 +190,9 @@ class MainActivity : ComponentActivity() {
                         Log.d(TAG, "从DAO获取的当前用户 (isLoggedIn=true): userId=${currentUser.userId}, username=${currentUser.username}, isLoggedIn=${currentUser.isLoggedIn}")
                     }
 
-                    determinedStartDestination = if (currentUser != null) {
-                        Log.d(TAG, "用户已登录 (currentUser != null && currentUser.isLoggedIn == true)，起始页设置为: HOME")
-                        AppRoute.HOME
-                    } else {
-                        Log.d(TAG, "用户未登录 (currentUser == null or currentUser.isLoggedIn == false)，起始页设置为: LOGIN")
-                        AppRoute.LOGIN
-                    }
+                    // 始终从首页开始，支持游客模式
+                    determinedStartDestination = AppRoute.HOME
+                    Log.d(TAG, "采用游客模式，起始页设置为: HOME")
                     Log.d(TAG, "最终确定的起始路由 (determinedStartDestination): $determinedStartDestination")
                 }
                 Log.d(TAG, "首次运行和用户状态检查完成")

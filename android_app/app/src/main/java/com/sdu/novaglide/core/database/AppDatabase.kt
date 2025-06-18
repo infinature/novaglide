@@ -11,10 +11,12 @@ import com.sdu.novaglide.data.local.dao.UserDao
 import com.sdu.novaglide.data.local.dao.BrowsingHistoryDao
 import com.sdu.novaglide.data.local.dao.FavoriteArticleDao
 import com.sdu.novaglide.data.local.dao.NewsArticleDao // Import new DAO
+import com.sdu.novaglide.data.local.dao.SearchHistoryDao // Import SearchHistoryDao
 import com.sdu.novaglide.data.local.entity.UserEntity
 import com.sdu.novaglide.data.local.entity.BrowsingHistoryEntity
 import com.sdu.novaglide.data.local.entity.FavoriteArticleEntity
 import com.sdu.novaglide.data.local.entity.NewsArticleEntity // Import new Entity
+import com.sdu.novaglide.data.local.entity.SearchHistoryEntity // Import SearchHistoryEntity
 import com.sdu.novaglide.core.database.util.DateConverter
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.flow.firstOrNull // Ensure this import is present and correct
@@ -26,8 +28,8 @@ import java.util.concurrent.Executors
  * 应用数据库
  */
 @Database(
-    entities = [UserEntity::class, BrowsingHistoryEntity::class, FavoriteArticleEntity::class, NewsArticleEntity::class], // Add NewsArticleEntity
-    version = 6, // Incremented version
+    entities = [UserEntity::class, BrowsingHistoryEntity::class, FavoriteArticleEntity::class, NewsArticleEntity::class, SearchHistoryEntity::class], // Add SearchHistoryEntity
+    version = 8, // Incremented version for SearchHistoryEntity
     exportSchema = true
 )
 @TypeConverters(DateConverter::class)
@@ -37,11 +39,12 @@ abstract class AppDatabase : RoomDatabase() {
     abstract fun browsingHistoryDao(): BrowsingHistoryDao
     abstract fun favoriteArticleDao(): FavoriteArticleDao
     abstract fun newsArticleDao(): NewsArticleDao // Add new DAO abstract method
+    abstract fun searchHistoryDao(): SearchHistoryDao // Add SearchHistoryDao abstract method
 
     companion object {
         @Volatile
         private var INSTANCE: AppDatabase? = null
-        private const val DATABASE_NAME = "novaglide_database_v6" // Updated database name for clarity
+        private const val DATABASE_NAME = "novaglide_database_v8" // Updated database name for clarity
 
         // Migration from version 4 to 5 (already exists)
         val MIGRATION_4_5 = object : Migration(4, 5) {
@@ -69,6 +72,30 @@ abstract class AppDatabase : RoomDatabase() {
             }
         }
 
+        // Migration from version 6 to 7 (fix for schema mismatch)
+        val MIGRATION_6_7 = object : Migration(6, 7) {
+            override fun migrate(database: SupportSQLiteDatabase) {
+                // No changes needed - this is just to fix the version mismatch issue
+                // The schema is already correct
+            }
+        }
+
+        // Migration from version 7 to 8 (add search history table)
+        val MIGRATION_7_8 = object : Migration(7, 8) {
+            override fun migrate(database: SupportSQLiteDatabase) {
+                database.execSQL("""
+                    CREATE TABLE IF NOT EXISTS `search_history` (
+                        `id` TEXT NOT NULL, 
+                        `user_id` TEXT NOT NULL, 
+                        `search_query` TEXT NOT NULL, 
+                        `search_time` INTEGER NOT NULL, 
+                        `search_count` INTEGER NOT NULL DEFAULT 1, 
+                        PRIMARY KEY(`id`)
+                    )
+                """)
+            }
+        }
+
         fun getDatabase(
             context: Context,
             scope: CoroutineScope
@@ -79,7 +106,7 @@ abstract class AppDatabase : RoomDatabase() {
                     AppDatabase::class.java,
                     DATABASE_NAME
                 )
-                .addMigrations(MIGRATION_4_5, MIGRATION_5_6) // Add new migration
+                .addMigrations(MIGRATION_4_5, MIGRATION_5_6, MIGRATION_6_7, MIGRATION_7_8) // Add new migration
                 .addCallback(object : Callback() { // Add callback to populate data
                     override fun onCreate(db: SupportSQLiteDatabase) {
                         super.onCreate(db)
@@ -115,7 +142,7 @@ abstract class AppDatabase : RoomDatabase() {
                         }
                     }
                 })
-                // .fallbackToDestructiveMigration() // Avoid if migrations are set up
+                .fallbackToDestructiveMigration() // Fallback to destructive migration if schema changes cause issues
                 .build()
                 INSTANCE = instance
                 instance

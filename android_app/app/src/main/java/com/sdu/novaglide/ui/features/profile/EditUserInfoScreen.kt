@@ -15,6 +15,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
+import com.sdu.novaglide.core.util.ValidationUtils
 import com.sdu.novaglide.domain.model.UserInfo
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -35,7 +36,31 @@ fun EditUserInfoScreen(
     var institution by remember { mutableStateOf("") }
     var graduationYearStr by remember { mutableStateOf("") }
 
+    // 验证错误状态
+    var nicknameError by remember { mutableStateOf<String?>(null) }
+    var emailError by remember { mutableStateOf<String?>(null) }
+    var phoneError by remember { mutableStateOf<String?>(null) }
+    var bioError by remember { mutableStateOf<String?>(null) }
+    var graduationYearError by remember { mutableStateOf<String?>(null) }
+
     var initialUserInfo: UserInfo? by remember { mutableStateOf(null) }
+
+    // 实时验证
+    LaunchedEffect(nickname) {
+        nicknameError = ValidationUtils.getNicknameErrorMessage(nickname)
+    }
+    LaunchedEffect(email) {
+        emailError = ValidationUtils.getEmailErrorMessage(email)
+    }
+    LaunchedEffect(phone) {
+        phoneError = ValidationUtils.getPhoneErrorMessage(phone)
+    }
+    LaunchedEffect(bio) {
+        bioError = ValidationUtils.getBioErrorMessage(bio)
+    }
+    LaunchedEffect(graduationYearStr) {
+        graduationYearError = ValidationUtils.getGraduationYearErrorMessage(graduationYearStr)
+    }
 
     LaunchedEffect(userInfoState) {
         if (userInfoState is UserInfoState.Success) {
@@ -79,6 +104,26 @@ fun EditUserInfoScreen(
                 },
                 actions = {
                     IconButton(onClick = {
+                        // 检查所有验证错误
+                        val hasErrors = nicknameError != null || emailError != null || 
+                                       phoneError != null || bioError != null || 
+                                       graduationYearError != null
+                        
+                        if (hasErrors) {
+                            Toast.makeText(context, "请修正表单中的错误", Toast.LENGTH_SHORT).show()
+                            return@IconButton
+                        }
+                        
+                        // 最终验证
+                        if (!ValidationUtils.isValidNickname(nickname) ||
+                            !ValidationUtils.isValidEmail(email) ||
+                            (phone.isNotEmpty() && !ValidationUtils.isValidPhoneNumber(phone)) ||
+                            !ValidationUtils.isValidBio(bio) ||
+                            !ValidationUtils.isValidGraduationYear(graduationYearStr.toIntOrNull())) {
+                            Toast.makeText(context, "请检查输入信息格式", Toast.LENGTH_SHORT).show()
+                            return@IconButton
+                        }
+                        
                         initialUserInfo?.let { currentUser ->
                             val updatedUserInfo = currentUser.copy(
                                 nickname = nickname,
@@ -91,7 +136,11 @@ fun EditUserInfoScreen(
                             )
                             viewModel.updateEditableUserInfo(updatedUserInfo)
                         }
-                    }, enabled = editUserInfoResult !is EditUserInfoResult.Loading) {
+                    }, enabled = editUserInfoResult !is EditUserInfoResult.Loading &&
+                                nicknameError == null && emailError == null && 
+                                phoneError == null && bioError == null && 
+                                graduationYearError == null &&
+                                nickname.isNotBlank() && email.isNotBlank()) {
                         Icon(Icons.Filled.Done, contentDescription = "保存")
                     }
                 }
@@ -119,7 +168,9 @@ fun EditUserInfoScreen(
                     onValueChange = { nickname = it },
                     label = { Text("昵称") },
                     modifier = Modifier.fillMaxWidth(),
-                    singleLine = true
+                    singleLine = true,
+                    isError = nicknameError != null,
+                    supportingText = nicknameError?.let { { Text(it, color = MaterialTheme.colorScheme.error) } }
                 )
                 Spacer(modifier = Modifier.height(16.dp))
                 OutlinedTextField(
@@ -128,24 +179,30 @@ fun EditUserInfoScreen(
                     label = { Text("邮箱") },
                     modifier = Modifier.fillMaxWidth(),
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email),
-                    singleLine = true
+                    singleLine = true,
+                    isError = emailError != null,
+                    supportingText = emailError?.let { { Text(it, color = MaterialTheme.colorScheme.error) } }
                 )
                 Spacer(modifier = Modifier.height(16.dp))
                 OutlinedTextField(
                     value = phone,
                     onValueChange = { phone = it },
-                    label = { Text("手机号") },
+                    label = { Text("手机号（可选）") },
                     modifier = Modifier.fillMaxWidth(),
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Phone),
-                    singleLine = true
+                    singleLine = true,
+                    isError = phoneError != null,
+                    supportingText = phoneError?.let { { Text(it, color = MaterialTheme.colorScheme.error) } }
                 )
                 Spacer(modifier = Modifier.height(16.dp))
                 OutlinedTextField(
                     value = bio,
                     onValueChange = { bio = it },
-                    label = { Text("简介") },
+                    label = { Text("简介（不超过200字符）") },
                     modifier = Modifier.fillMaxWidth().height(120.dp),
-                    maxLines = 5
+                    maxLines = 5,
+                    isError = bioError != null,
+                    supportingText = bioError?.let { { Text(it, color = MaterialTheme.colorScheme.error) } }
                 )
                 Spacer(modifier = Modifier.height(16.dp))
                 OutlinedTextField(
@@ -167,10 +224,12 @@ fun EditUserInfoScreen(
                 OutlinedTextField(
                     value = graduationYearStr,
                     onValueChange = { graduationYearStr = it.filter { char -> char.isDigit() } },
-                    label = { Text("毕业年份 (可选)") },
+                    label = { Text("毕业年份（可选）") },
                     modifier = Modifier.fillMaxWidth(),
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                    singleLine = true
+                    singleLine = true,
+                    isError = graduationYearError != null,
+                    supportingText = graduationYearError?.let { { Text(it, color = MaterialTheme.colorScheme.error) } }
                 )
 
                 if (editUserInfoResult is EditUserInfoResult.Loading) {

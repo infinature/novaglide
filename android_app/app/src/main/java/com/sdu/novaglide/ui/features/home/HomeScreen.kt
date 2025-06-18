@@ -45,6 +45,7 @@ fun HomeScreen(
     newsViewModel: NewsViewModel,
     onNavigateToQna: () -> Unit,
     onNavigateToProfile: () -> Unit,
+    onNavigateToSearch: () -> Unit,
     onNavigateToNewsDetail: (String) -> Unit
 ) {
     val newsList by newsViewModel.newsList.collectAsState()
@@ -90,43 +91,35 @@ fun HomeScreen(
                 }
                 
                 // 搜索栏
-                OutlinedTextField(
-                    value = searchQuery,
-                    onValueChange = {
-                        newsViewModel.onSearchQueryChanged(it)
-                        newsViewModel.searchNews(it)
-                     },
+                Surface(
                     modifier = Modifier
                         .fillMaxWidth()
                         .padding(horizontal = 16.dp, vertical = 8.dp)
-                        .height(48.dp)
-                        .onKeyEvent {
-                            if (it.key == Key.Enter) {
-                                newsViewModel.searchNews(searchQuery)
-                                keyboardController?.hide()
-                                true
-                            } else {
-                                false
-                            }
-                        },
-                    placeholder = { Text("搜索资讯") },
-                    leadingIcon = { Icon(Icons.Outlined.Search, contentDescription = "搜索") },
-                    singleLine = true,
+                        .heightIn(min = 56.dp)
+                        .clickable { onNavigateToSearch() },
                     shape = RoundedCornerShape(24.dp),
-                    colors = TextFieldDefaults.outlinedTextFieldColors(
-                        containerColor = Color(0xFFF5F5F5),
-                        unfocusedBorderColor = Color.Transparent
-                    ),
-                    keyboardOptions = KeyboardOptions.Default.copy(
-                        imeAction = ImeAction.Search
-                    ),
-                    keyboardActions = KeyboardActions(
-                        onSearch = {
-                            newsViewModel.searchNews(searchQuery)
-                            keyboardController?.hide()
-                        }
-                    )
-                )
+                    color = Color(0xFFF5F5F5)
+                ) {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 16.dp, vertical = 16.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Icon(
+                            Icons.Outlined.Search, 
+                            contentDescription = "搜索",
+                            modifier = Modifier.size(20.dp),
+                            tint = Color.Gray
+                        )
+                        Spacer(modifier = Modifier.width(12.dp))
+                        Text(
+                            text = if (searchQuery.isNotEmpty()) searchQuery else "搜索资讯",
+                            fontSize = 16.sp,
+                            color = if (searchQuery.isNotEmpty()) MaterialTheme.colorScheme.onSurface else Color.Gray
+                        )
+                    }
+                }
                 
                 // 二级标题
                 // 如果这里或附近有显示用户信息的逻辑，需要处理 currentUserState

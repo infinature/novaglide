@@ -32,6 +32,8 @@ import androidx.navigation.NavGraph.Companion.findStartDestination
 import com.sdu.novaglide.ui.features.auth.RegisterScreen
 import com.sdu.novaglide.ui.features.home.NewsDetailScreen
 import com.sdu.novaglide.ui.features.home.NewsViewModel
+import com.sdu.novaglide.ui.features.search.SearchScreen
+import com.sdu.novaglide.ui.features.search.SearchViewModel
 
 private const val TAG_NAV = "AppNavigation"
 
@@ -51,6 +53,7 @@ object AppRoute {
     const val LOGIN = "login" // <-- 添加 LOGIN 路由
     const val REGISTER = "register" // <-- 添加 REGISTER 路由
     const val NEWS_DETAIL = "news_detail" // <-- 添加 NEWS_DETAIL 路由
+    const val SEARCH = "search" // <-- 添加 SEARCH 路由
 } // <-- 移除末尾的 */
 
  /**
@@ -86,6 +89,11 @@ fun AppNavigation(
 
     // NewsViewModel 单例
     val newsViewModel: NewsViewModel = remember { NewsViewModel() }
+    
+    // SearchViewModel 实例
+    val searchViewModel: SearchViewModel = remember {
+        SearchViewModel.Factory(application.searchHistoryRepository).create(SearchViewModel::class.java)
+    }
 
     LaunchedEffect(key1 = Unit) {
         Log.d(TAG_NAV, "AppNavigation 初始化完成，NavHost 将使用的 startDestination: $startDestination")
@@ -104,6 +112,7 @@ fun AppNavigation(
                 newsViewModel = newsViewModel,
                 onNavigateToQna = { navController.navigate(AppRoute.QNA) },
                 onNavigateToProfile = { navController.navigate(AppRoute.PROFILE) },
+                onNavigateToSearch = { navController.navigate(AppRoute.SEARCH) },
                 onNavigateToNewsDetail = { documentId -> 
                     navController.navigate("${AppRoute.NEWS_DETAIL}/$documentId") // 使用 AppRoute.NEWS_DETAIL
                 }
@@ -147,22 +156,18 @@ fun AppNavigation(
                     }
                 },
                 onNavigateToLogout = {
-                    Log.d(TAG_NAV, "Logout: Navigating to LOGIN and clearing up to graph root or HOME.")
-                    navController.navigate(AppRoute.LOGIN) {
-                        // 尝试 popUpTo 整个图的 ID
-                        popUpTo(navController.graph.id) { // navController.graph.id 是整个 NavHost 图的 ID
-                            inclusive = true 
-                        }
-                        // 或者，如果 HOME 是确定的登录后根屏幕:
-                        // popUpTo(AppRoute.HOME) {
-                        //     inclusive = true
-                        // }
-                        launchSingleTop = true 
+                    Log.d(TAG_NAV, "Logout: 用户退出登录，保持在首页")
+                    // 退出登录后留在首页，不跳转到登录页
+                    navController.navigate(AppRoute.HOME) {
+                        popUpTo(AppRoute.HOME) { inclusive = true }
+                        launchSingleTop = true
                     }
                 },
                 onNavigateToEditUserInfo = { navController.navigate(AppRoute.EDIT_USER_INFO) },
                 onNavigateToBrowsingHistory = { navController.navigate(AppRoute.BROWSING_HISTORY) },
-                onNavigateToFavorites = { navController.navigate(AppRoute.FAVORITE_ARTICLES) } // 添加导航
+                onNavigateToFavorites = { navController.navigate(AppRoute.FAVORITE_ARTICLES) },
+                onNavigateToLogin = { navController.navigate(AppRoute.LOGIN) }, // 添加登录导航
+                onNavigateToRegister = { navController.navigate(AppRoute.REGISTER) } // 添加注册导航
             )
         }
 
@@ -233,22 +238,38 @@ fun AppNavigation(
             LoginScreen(
                 viewModel = actualUserInfoViewModel,
                 onNavigateToHome = {
-                    navController.navigate(AppRoute.HOME) {
+                    // 登录成功后返回个人中心页面
+                    navController.navigate(AppRoute.PROFILE) {
                         popUpTo(AppRoute.LOGIN) { inclusive = true } 
                         launchSingleTop = true
                     }
                 },
-                onNavigateToRegister = { navController.navigate(AppRoute.REGISTER) } // 使用 AppRoute.REGISTER
+                onNavigateToRegister = { navController.navigate(AppRoute.REGISTER) }
+            )
+        }
+
+        // 搜索页路由
+        composable(AppRoute.SEARCH) {
+            SearchScreen(
+                searchViewModel = searchViewModel,
+                userInfoViewModel = actualUserInfoViewModel,
+                newsViewModel = newsViewModel,
+                onNavigateBack = { navController.popBackStack() },
+                onSearch = { query ->
+                    // 执行搜索并返回主页，传递搜索结果
+                    newsViewModel.searchNews(query)
+                    navController.popBackStack()
+                }
             )
         }
 
         // 注册页路由
-        composable(AppRoute.REGISTER) { // 使用 AppRoute.REGISTER
+        composable(AppRoute.REGISTER) {
             RegisterScreen(
                 viewModel = actualUserInfoViewModel,
                 onNavigateToLogin = {
-                    navController.navigate(AppRoute.LOGIN) { // 使用 AppRoute.LOGIN
-                        popUpTo(AppRoute.REGISTER) { inclusive = true } // 使用 AppRoute.REGISTER
+                    navController.navigate(AppRoute.LOGIN) {
+                        popUpTo(AppRoute.REGISTER) { inclusive = true }
                         launchSingleTop = true
                     }
                 },

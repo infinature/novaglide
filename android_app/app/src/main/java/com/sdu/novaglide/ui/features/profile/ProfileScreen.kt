@@ -34,27 +34,15 @@ fun ProfileScreen(
     onNavigateToLogout: () -> Unit, // 登出回调，由 AppNavigation 实现导航栈清理
     onNavigateToEditUserInfo: () -> Unit, // 新增导航到编辑页面的回调
     onNavigateToBrowsingHistory: () -> Unit, // 确保此参数存在
-    onNavigateToFavorites: () -> Unit // 新增导航到收藏页面的回调
+    onNavigateToFavorites: () -> Unit, // 新增导航到收藏页面的回调
+    onNavigateToLogin: () -> Unit = {}, // 新增登录导航回调
+    onNavigateToRegister: () -> Unit = {} // 新增注册导航回调
 ) {
     val userInfoState by viewModel.userInfoState.collectAsState()
 
-    // 修改 LaunchedEffect 逻辑
-    // 只有当 userInfoState 不是 Success 状态，且不是 Loading 状态时，
-    // 才考虑加载当前用户（例如应用启动直接进入此页面，或从后台恢复）
-    // 如果是通过登录流程导航到此页面，userInfoState 应该已经是 Success 状态。
-    LaunchedEffect(userInfoState) { // 观察 userInfoState 的变化
-        if (userInfoState !is UserInfoState.Success && userInfoState !is UserInfoState.Loading) {
-            // 避免在登录成功后立即覆盖 userInfoState
-            // 如果需要处理应用启动直接进入 Profile 页的场景，
-            // 可以在 ViewModel 初始化时或此处进行一次加载。
-            // 但要确保这个加载不会覆盖登录成功设置的状态。
-            // 一个更安全的做法是，如果 viewModel.userInfoState 初始为 Loading 或 Error，
-            // 并且没有正在进行的登录操作，才执行 loadCurrentUserInfo。
-            // 此处简化为：如果不是Success也不是Loading，则尝试加载。
-            // 这假设ViewModel的初始状态可能是Loading，然后变为Error或Success。
-            // 如果直接进入此页面，userInfoState可能是初始的Loading或Error。
-            viewModel.loadCurrentUserInfo()
-        }
+    // 在应用启动时尝试加载用户信息
+    LaunchedEffect(Unit) {
+        viewModel.loadCurrentUserInfo()
     }
 
     Scaffold(
@@ -75,67 +63,124 @@ fun ProfileScreen(
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
             // 用户信息卡片
-            Card(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(16.dp)
-                    .clickable { onNavigateToUserInfo() },
-                elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
-                colors = CardDefaults.cardColors(containerColor = Color.White)
-            ) {
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(16.dp),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    // 临时头像占位符
-                    Box(
+            when (val state = userInfoState) {
+                is UserInfoState.Success -> {
+                    // 已登录状态：显示用户信息
+                    Card(
                         modifier = Modifier
-                            .size(64.dp)
-                            .clip(CircleShape)
-                            .background(Color.LightGray),
-                        contentAlignment = Alignment.Center
+                            .fillMaxWidth()
+                            .padding(16.dp)
+                            .clickable { onNavigateToUserInfo() },
+                        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
+                        colors = CardDefaults.cardColors(containerColor = Color.White)
                     ) {
-                        // 如果有头像 URL，可以使用 Coil 等库加载
-                        // Image(painter = painterResource(id = R.drawable.avatar_placeholder), contentDescription = "头像")
-                        when (val state = userInfoState) {
-                            is UserInfoState.Success -> {
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(16.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            // 用户头像
+                            Box(
+                                modifier = Modifier
+                                    .size(64.dp)
+                                    .clip(CircleShape)
+                                    .background(MaterialTheme.colorScheme.primary),
+                                contentAlignment = Alignment.Center
+                            ) {
                                 if (state.userInfo.nickname.isNotEmpty()) {
-                                    Text(state.userInfo.nickname.first().toString(), fontSize = 24.sp, color = Color.White)
+                                    Text(
+                                        text = state.userInfo.nickname.first().toString(),
+                                        fontSize = 24.sp,
+                                        color = Color.White,
+                                        fontWeight = FontWeight.Bold
+                                    )
                                 }
                             }
-                            else -> {
-                                // 加载中或错误时可以显示默认字符或图标
-                                Icon(Icons.Filled.Person, contentDescription = "默认头像", tint = Color.Gray, modifier = Modifier.size(40.dp))
-                            }
-                        }
-                    }
-                    
-                    Spacer(modifier = Modifier.width(16.dp))
-                    
-                    Column {
-                        // 昵称
-                        when (val state = userInfoState) {
-                            is UserInfoState.Success -> {
+                            
+                            Spacer(modifier = Modifier.width(16.dp))
+                            
+                            Column {
                                 Text(
-                                    text = state.userInfo.nickname, 
-                                    fontSize = 20.sp, 
+                                    text = state.userInfo.nickname,
+                                    fontSize = 20.sp,
                                     fontWeight = FontWeight.Bold
                                 )
-                                // 简介或状态 - 从 state.userInfo.bio 获取
                                 Text(
-                                    text = state.userInfo.bio.take(30) + if (state.userInfo.bio.length > 30) "..." else "", // 显示部分简介
-                                    fontSize = 14.sp, 
+                                    text = state.userInfo.bio.take(30) + if (state.userInfo.bio.length > 30) "..." else "",
+                                    fontSize = 14.sp,
                                     color = Color.Gray
                                 )
                             }
-                            is UserInfoState.Loading -> {
-                                Text(text = "加载中...", fontSize = 20.sp, fontWeight = FontWeight.Bold)
+                        }
+                    }
+                }
+                else -> {
+                    // 未登录状态：显示登录/注册选项
+                    Card(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(16.dp),
+                        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
+                        colors = CardDefaults.cardColors(containerColor = Color.White)
+                    ) {
+                        Column(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(24.dp),
+                            horizontalAlignment = Alignment.CenterHorizontally
+                        ) {
+                            // 游客头像
+                            Box(
+                                modifier = Modifier
+                                    .size(80.dp)
+                                    .clip(CircleShape)
+                                    .background(Color.LightGray),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Icon(
+                                    Icons.Filled.Person,
+                                    contentDescription = "游客",
+                                    tint = Color.Gray,
+                                    modifier = Modifier.size(48.dp)
+                                )
                             }
-                            is UserInfoState.Error -> {
-                                // 当 UserInfoViewModel.logout() 将状态设置为 Error("用户已登出") 时，这里会显示
-                                Text(text = state.message, fontSize = 16.sp, color = Color.Gray) // 可以调整显示方式
+                            
+                            Spacer(modifier = Modifier.height(16.dp))
+                            
+                            Text(
+                                text = "欢迎使用 NovaGlide",
+                                fontSize = 20.sp,
+                                fontWeight = FontWeight.Bold
+                            )
+                            
+                            Text(
+                                text = "登录后享受更多功能",
+                                fontSize = 14.sp,
+                                color = Color.Gray,
+                                modifier = Modifier.padding(vertical = 8.dp)
+                            )
+                            
+                            Spacer(modifier = Modifier.height(16.dp))
+                            
+                            // 登录/注册按钮
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.spacedBy(12.dp)
+                            ) {
+                                Button(
+                                    onClick = onNavigateToLogin,
+                                    modifier = Modifier.weight(1f)
+                                ) {
+                                    Text("登录")
+                                }
+                                
+                                OutlinedButton(
+                                    onClick = onNavigateToRegister,
+                                    modifier = Modifier.weight(1f)
+                                ) {
+                                    Text("注册")
+                                }
                             }
                         }
                     }
@@ -148,13 +193,31 @@ fun ProfileScreen(
                     .fillMaxWidth()
                     .padding(horizontal = 16.dp)
             ) {
-                ProfileMenuItem(icon = Icons.Filled.Favorite, title = "我的收藏", onClick = onNavigateToFavorites) // 修改onClick
-                ProfileMenuItem(icon = Icons.Filled.History, title = "浏览历史", onClick = onNavigateToBrowsingHistory) // 使用此参数
-                ProfileMenuItem(icon = Icons.Filled.Edit, title = "信息编辑", onClick = onNavigateToEditUserInfo)
-                ProfileMenuItem(icon = Icons.Filled.ExitToApp, title = "退出登录", onClick = {
-                    viewModel.logout() // 1. 清除 ViewModel 和数据库中的登录状态
-                    onNavigateToLogout() // 2. 执行导航，AppNavigation 会处理返回栈
-                })
+                when (userInfoState) {
+                    is UserInfoState.Success -> {
+                        // 已登录状态：显示完整功能列表
+                        ProfileMenuItem(icon = Icons.Filled.Favorite, title = "我的收藏", onClick = onNavigateToFavorites)
+                        ProfileMenuItem(icon = Icons.Filled.History, title = "浏览历史", onClick = onNavigateToBrowsingHistory)
+                        ProfileMenuItem(icon = Icons.Filled.Edit, title = "信息编辑", onClick = onNavigateToEditUserInfo)
+                        ProfileMenuItem(icon = Icons.Filled.ExitToApp, title = "退出登录", onClick = {
+                            viewModel.logout()
+                            onNavigateToLogout()
+                        })
+                    }
+                    else -> {
+                        // 未登录状态：显示基础功能（可选）
+                        ProfileMenuItem(
+                            icon = Icons.Filled.Info,
+                            title = "关于应用",
+                            onClick = { /* 可以添加关于页面 */ }
+                        )
+                        ProfileMenuItem(
+                            icon = Icons.Filled.Settings,
+                            title = "设置",
+                            onClick = { /* 可以添加设置页面 */ }
+                        )
+                    }
+                }
             }
         }
     }

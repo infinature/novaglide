@@ -6,11 +6,14 @@ import com.sdu.novaglide.core.database.AppDatabase
 import com.sdu.novaglide.data.local.dao.BrowsingHistoryDao
 import com.sdu.novaglide.data.local.dao.UserDao
 import com.sdu.novaglide.data.local.dao.FavoriteArticleDao
+import com.sdu.novaglide.data.local.dao.SearchHistoryDao
 import com.sdu.novaglide.data.local.entity.UserEntity // <--- 检查或添加此导入
 import com.sdu.novaglide.data.repository.BrowsingHistoryRepository
 import com.sdu.novaglide.data.repository.BrowsingHistoryRepositoryImpl
 import com.sdu.novaglide.data.repository.FavoriteArticleRepository
 import com.sdu.novaglide.data.repository.FavoriteArticleRepositoryImpl
+import com.sdu.novaglide.data.repository.SearchHistoryRepository
+import com.sdu.novaglide.data.repository.SearchHistoryRepositoryImpl
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -54,6 +57,18 @@ class NovaGlideApplication : Application() {
     val favoriteArticleRepository: FavoriteArticleRepository by lazy {
         Log.d(TAG, "获取FavoriteArticleRepository实例")
         FavoriteArticleRepositoryImpl(favoriteArticleDao)
+    }
+    
+    // 提供 SearchHistoryDao
+    val searchHistoryDao: SearchHistoryDao by lazy {
+        Log.d(TAG, "获取SearchHistoryDao实例")
+        database.searchHistoryDao()
+    }
+
+    // 提供 SearchHistoryRepository
+    val searchHistoryRepository: SearchHistoryRepository by lazy {
+        Log.d(TAG, "获取SearchHistoryRepository实例")
+        SearchHistoryRepositoryImpl(searchHistoryDao)
     }
     
     override fun onCreate() {
