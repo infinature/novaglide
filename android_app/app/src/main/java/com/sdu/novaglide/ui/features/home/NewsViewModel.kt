@@ -35,6 +35,10 @@ class NewsViewModel(private val context: Context) : ViewModel() {
     // 添加刷新状态
     private val _isRefreshing = MutableStateFlow(false)
     val isRefreshing: StateFlow<Boolean> = _isRefreshing
+    
+    // 添加刷新时间戳，用于触发推荐算法重新计算
+    private val _refreshTimestamp = MutableStateFlow(0L)
+    val refreshTimestamp: StateFlow<Long> = _refreshTimestamp
 
     // 使用ApiKeyStore来获取保存的API配置
     private val apiKeyStore = ApiKeyStore(context)
@@ -199,6 +203,8 @@ class NewsViewModel(private val context: Context) : ViewModel() {
                     Log.d("NewsViewModel", "刷新 - 最终newsList: $news")
                     allNews = news
                     _newsList.value = news
+                    // 更新刷新时间戳，触发推荐算法重新计算
+                    _refreshTimestamp.value = System.currentTimeMillis()
                 } else {
                     Log.e("NewsViewModel", "刷新 - RAGFLOW接口失败: ${response.code()} ${response.message()}")
                 }

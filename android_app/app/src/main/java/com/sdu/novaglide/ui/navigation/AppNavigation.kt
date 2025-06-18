@@ -170,16 +170,17 @@ fun AppNavigation(
                 }
             )
         }
-        // 首页
+                // 首页
         composable(AppRoute.HOME) {
             HomeScreen(
                 userInfoViewModel = actualUserInfoViewModel,
                 browsingHistoryViewModel = browsingHistoryViewModel,
+                favoriteArticleViewModel = favoriteArticleViewModel,
                 newsViewModel = newsViewModel,
                 onNavigateToQna = { navController.navigate(AppRoute.QNA) },
                 onNavigateToProfile = { navController.navigate(AppRoute.PROFILE) },
                 onNavigateToSearch = { navController.navigate(AppRoute.SEARCH) },
-                onNavigateToNewsDetail = { documentId -> 
+                onNavigateToNewsDetail = { documentId ->
                     navController.navigate("${AppRoute.NEWS_DETAIL}/$documentId") // 使用 AppRoute.NEWS_DETAIL
                 }
             )
