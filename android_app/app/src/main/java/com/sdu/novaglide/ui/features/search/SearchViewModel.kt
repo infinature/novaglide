@@ -44,22 +44,22 @@ class SearchViewModel(
     fun getSearchSuggestions(query: StateFlow<String>): StateFlow<List<String>> {
         return combine(
             query,
-            searchHistory
+        searchHistory
         ) { q, history ->
             if (q.isBlank()) {
-                emptyList()
-            } else {
-                history
+            emptyList()
+        } else {
+            history
                     .filter { it.searchQuery.contains(q, ignoreCase = true) }
-                    .map { it.searchQuery }
-                    .distinct()
-                    .take(5)
-            }
-        }.stateIn(
-            scope = viewModelScope,
-            started = SharingStarted.WhileSubscribed(5000),
-            initialValue = emptyList()
-        )
+                .map { it.searchQuery }
+                .distinct()
+                .take(5)
+        }
+    }.stateIn(
+        scope = viewModelScope,
+        started = SharingStarted.WhileSubscribed(5000),
+        initialValue = emptyList()
+    )
     }
     
     /**

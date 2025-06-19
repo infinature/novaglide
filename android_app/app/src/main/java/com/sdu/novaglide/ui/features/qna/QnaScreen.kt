@@ -25,20 +25,161 @@ import androidx.compose.foundation.isSystemInDarkTheme
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import com.sdu.novaglide.ui.theme.scaledSp
+import android.util.Log
+import androidx.compose.ui.window.Dialog
+
+/**
+ * 处理引文点击的逻辑函数
+ * 分离出来避免闭包中的类型转换问题
+ */
+private fun handleReferenceClickLogic(
+    refNumber: String,
+    references: List<com.sdu.novaglide.domain.model.DocumentReference>,
+    onReferenceClick: (String) -> Unit,
+    onShowReferenceDialog: (com.sdu.novaglide.domain.model.DocumentReference) -> Unit
+) {
+    Log.d("QnaScreen", "引文点击: 编号[$refNumber], 总引用数量: ${references.size}")
+    
+    // 找到对应的文档引用 - 支持多种映射方式
+    val refIndex = refNumber.toIntOrNull()?.minus(1) // 转换为0-based索引
+    var reference: com.sdu.novaglide.domain.model.DocumentReference? = null
+    
+    if (refIndex != null && refIndex >= 0 && refIndex < references.size) {
+        // 方式1：直接按索引查找
+        reference = references[refIndex]
+        Log.d("QnaScreen", "通过索引找到引用: ${reference.documentName} (ID: ${reference.documentId})")
+    } else {
+        // 方式2：通过文档ID查找（支持模拟引用的格式）
+        val targetDocId = "ref_$refNumber"
+        reference = references.find { it.documentId == targetDocId }
+        if (reference != null) {
+            Log.d("QnaScreen", "通过文档ID找到引用: ${reference.documentName} (ID: ${reference.documentId})")
+        } else {
+            // 方式3：通过文档名称查找
+            reference = references.find { it.documentName.contains("引用文档 $refNumber") }
+            if (reference != null) {
+                Log.d("QnaScreen", "通过文档名称找到引用: ${reference.documentName} (ID: ${reference.documentId})")
+            }
+        }
+    }
+    
+    if (reference != null) {
+        // 检查是否是模拟生成的引用
+        if (reference.documentId.startsWith("ref_")) {
+            Log.d("QnaScreen", "检测到模拟引用，显示引文详情对话框: ${reference.documentId}")
+            // 显示引文详情对话框
+            onShowReferenceDialog(reference)
+        } else {
+            // 真实的文档ID，可以安全导航
+            Log.d("QnaScreen", "导航到真实文档: ${reference.documentId}")
+            onReferenceClick(reference.documentId)
+        }
+    } else {
+        Log.w("QnaScreen", "无效的引文编号: $refNumber, 索引: $refIndex, 引用列表大小: ${references.size}")
+        Log.d("QnaScreen", "可用的引用文档: ${references.mapIndexed { index, ref -> "[$index]: ${ref.documentId} - ${ref.documentName}" }}")
+        
+        // 不再尝试fallback导航，避免导航到无效的文档ID
+        Log.d("QnaScreen", "引文编号[$refNumber]无对应文档，跳过导航操作")
+    }
+}
+
+/**
+ * 处理引文格式的工具函数
+ */
+fun processReferences(content: String): String {
+    var processedContent = content
+    
+    // 处理RAGFlow的引文格式 ##数字$$
+    processedContent = processedContent.replace(Regex("""##(\d+)\$\$""")) { matchResult ->
+        val referenceNumber = matchResult.groupValues[1]
+        Log.d("QnaScreen", "转换引文: ##${referenceNumber}$$ -> [${referenceNumber}]")
+        "<sup class=\"reference\">[${referenceNumber}]</sup>"
+    }
+    
+    // 处理其他可能的引文格式 [[数字]]
+    processedContent = processedContent.replace(Regex("""\[\[(\d+)\]\]""")) { matchResult ->
+        val referenceNumber = matchResult.groupValues[1]
+        Log.d("QnaScreen", "转换引文: [[${referenceNumber}]] -> [${referenceNumber}]")
+        "<sup class=\"reference\">[${referenceNumber}]</sup>"
+    }
+    
+    // 处理其他可能的引文格式 #数字#
+    processedContent = processedContent.replace(Regex("""#(\d+)#""")) { matchResult ->
+        val referenceNumber = matchResult.groupValues[1]
+        Log.d("QnaScreen", "转换引文: #${referenceNumber}# -> [${referenceNumber}]")
+        "<sup class=\"reference\">[${referenceNumber}]</sup>"
+    }
+    
+    // 处理其他可能的引文格式 $$数字$$
+    processedContent = processedContent.replace(Regex("""\$\$(\d+)\$\$""")) { matchResult ->
+        val referenceNumber = matchResult.groupValues[1]
+        Log.d("QnaScreen", "转换引文: $${referenceNumber}$$ -> [${referenceNumber}]")
+        "<sup class=\"reference\">[${referenceNumber}]</sup>"
+    }
+    
+    return processedContent
+}
+
+/**
+ * 处理引文格式的工具函数（带点击处理）
+ */
+fun processReferencesWithClickHandlers(
+    content: String, 
+    references: List<com.sdu.novaglide.domain.model.DocumentReference>
+): String {
+    var processedContent = content
+    
+    // 处理RAGFlow的引文格式 ##数字$$
+    processedContent = processedContent.replace(Regex("""##(\d+)\$\$""")) { matchResult ->
+        val referenceNumber = matchResult.groupValues[1]
+        Log.d("QnaScreen", "转换引文: ##${referenceNumber}$$ -> [${referenceNumber}] (可点击)")
+        "<sup class=\"reference\" onclick=\"handleReferenceClick('${referenceNumber}')\">[${referenceNumber}]</sup>"
+    }
+    
+    // 处理其他可能的引文格式 [[数字]]
+    processedContent = processedContent.replace(Regex("""\[\[(\d+)\]\]""")) { matchResult ->
+        val referenceNumber = matchResult.groupValues[1]
+        Log.d("QnaScreen", "转换引文: [[${referenceNumber}]] -> [${referenceNumber}] (可点击)")
+        "<sup class=\"reference\" onclick=\"handleReferenceClick('${referenceNumber}')\">[${referenceNumber}]</sup>"
+    }
+    
+    // 处理其他可能的引文格式 #数字#
+    processedContent = processedContent.replace(Regex("""#(\d+)#""")) { matchResult ->
+        val referenceNumber = matchResult.groupValues[1]
+        Log.d("QnaScreen", "转换引文: #${referenceNumber}# -> [${referenceNumber}] (可点击)")
+        "<sup class=\"reference\" onclick=\"handleReferenceClick('${referenceNumber}')\">[${referenceNumber}]</sup>"
+    }
+    
+    // 处理其他可能的引文格式 $$数字$$
+    processedContent = processedContent.replace(Regex("""\$\$(\d+)\$\$""")) { matchResult ->
+        val referenceNumber = matchResult.groupValues[1]
+        Log.d("QnaScreen", "转换引文: $${referenceNumber}$$ -> [${referenceNumber}] (可点击)")
+        "<sup class=\"reference\" onclick=\"handleReferenceClick('${referenceNumber}')\">[${referenceNumber}]</sup>"
+    }
+    
+    return processedContent
+}
 
 @Composable
 fun MarkdownText(
     content: String,
     textColor: Color,
+    references: List<com.sdu.novaglide.domain.model.DocumentReference> = emptyList(),
+    onReferenceClick: (String) -> Unit = {},
+    onShowReferenceDialog: (com.sdu.novaglide.domain.model.DocumentReference) -> Unit = {},
     modifier: Modifier = Modifier
 ) {
     val isDarkTheme = isSystemInDarkTheme()
+    val context = androidx.compose.ui.platform.LocalContext.current
     
-    val htmlContent = remember(content, isDarkTheme, textColor) {
-        // 清理内容
+    val htmlContent = remember(content, isDarkTheme, textColor, references) {
+        // 清理内容并处理引文格式
         var processedContent = content
             .replace(Regex("""<style[^>]*>.*?</style>""", RegexOption.DOT_MATCHES_ALL), "")
             .replace(Regex("""style\s*=\s*["'][^"']*["']""", RegexOption.IGNORE_CASE), "")
+        
+        // 处理引文格式，添加点击事件
+        processedContent = processReferencesWithClickHandlers(processedContent, references)
         
         // 转义内容用于JavaScript
         val escapedContent = processedContent
@@ -85,6 +226,26 @@ fun MarkdownText(
                     font-size: 14px;
                 }
                 
+                /* 引用样式 */
+                .reference {
+                    font-size: 12px;
+                    background-color: ${if (isDarkTheme) "rgba(88, 166, 255, 0.2)" else "rgba(3, 102, 214, 0.2)"};
+                    color: ${if (isDarkTheme) "#58a6ff" else "#0366d6"};
+                    padding: 2px 4px;
+                    border-radius: 4px;
+                    margin: 0 2px;
+                    text-decoration: none;
+                    font-weight: bold;
+                    border: 1px solid ${if (isDarkTheme) "rgba(88, 166, 255, 0.3)" else "rgba(3, 102, 214, 0.3)"};
+                    cursor: pointer;
+                    transition: all 0.2s ease;
+                }
+                
+                .reference:hover {
+                    background-color: ${if (isDarkTheme) "rgba(88, 166, 255, 0.4)" else "rgba(3, 102, 214, 0.4)"};
+                    transform: translateY(-1px);
+                }
+                
                 ${if (isDarkTheme) """
                 /* 强制深色模式样式 */
                 * {
@@ -124,6 +285,14 @@ fun MarkdownText(
                   }
                 });
                 document.getElementById('content').innerHTML = marked.parse('$escapedContent');
+                
+                // 处理引文点击事件
+                function handleReferenceClick(refNumber) {
+                    // 调用Android接口
+                    if (window.Android) {
+                        window.Android.onReferenceClick(refNumber);
+                    }
+                }
             </script>
         </body>
         </html>
@@ -137,6 +306,22 @@ fun MarkdownText(
                 settings.loadWithOverviewMode = true
                 settings.useWideViewPort = true
                 setBackgroundColor(android.graphics.Color.TRANSPARENT)
+                
+                // 添加JavaScript接口
+                addJavascriptInterface(object {
+                    @android.webkit.JavascriptInterface
+                    fun onReferenceClick(refNumber: String) {
+                        // 确保在主线程中执行回调
+                        (context as? android.app.Activity)?.runOnUiThread {
+                            handleReferenceClickLogic(refNumber, references, onReferenceClick, onShowReferenceDialog)
+                        } ?: run {
+                            // 如果无法获取Activity，使用Handler替代方案
+                            android.os.Handler(android.os.Looper.getMainLooper()).post {
+                                handleReferenceClickLogic(refNumber, references, onReferenceClick, onShowReferenceDialog)
+                            }
+                        }
+                    }
+                }, "Android")
                 
                 // 配置深色模式支持
                 if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.Q) {
@@ -173,6 +358,7 @@ fun MarkdownText(
 fun QnaScreen(
     onNavigateBack: () -> Unit,
     onNavigateToSettings: () -> Unit,
+    onNavigateToNewsDetail: (String) -> Unit = {},
     viewModel: QnaViewModel
 ) {
     var userInput by remember { mutableStateOf("") }
@@ -180,6 +366,10 @@ fun QnaScreen(
     val isLoading by viewModel.isLoading.collectAsState()
     val isApiConfigured by viewModel.isApiConfigured.collectAsState()
     val errorMessage by viewModel.errorMessage.collectAsState()
+    
+    // 引文详情对话框状态
+    var showReferenceDialog by remember { mutableStateOf(false) }
+    var selectedReference by remember { mutableStateOf<com.sdu.novaglide.domain.model.DocumentReference?>(null) }
     
     val listState = rememberLazyListState()
     val coroutineScope = rememberCoroutineScope()
@@ -274,7 +464,14 @@ fun QnaScreen(
                 state = listState
             ) {
                 items(messages) { message ->
-                    DomainMessageItem(message = message)
+                    DomainMessageItem(
+                        message = message,
+                        onNavigateToNewsDetail = onNavigateToNewsDetail,
+                        onShowReferenceDialog = { reference ->
+                            selectedReference = reference
+                            showReferenceDialog = true
+                        }
+                    )
                     Spacer(modifier = Modifier.height(16.dp))
                 }
             }
@@ -378,11 +575,191 @@ fun QnaScreen(
                 )
             }
         }
+        
+        // 引文详情对话框
+        if (showReferenceDialog && selectedReference != null) {
+            Dialog(
+                onDismissRequest = { 
+                    showReferenceDialog = false
+                    selectedReference = null
+                }
+            ) {
+                Card(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(16.dp),
+                    shape = RoundedCornerShape(16.dp),
+                    colors = CardDefaults.cardColors(
+                        containerColor = MaterialTheme.colorScheme.surface
+                    )
+                ) {
+                    Column(
+                        modifier = Modifier.padding(24.dp)
+                    ) {
+                        // 标题
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Text(
+                                text = "引文详情",
+                                style = MaterialTheme.typography.headlineSmall,
+                                fontWeight = FontWeight.Bold,
+                                color = MaterialTheme.colorScheme.onSurface
+                            )
+                            IconButton(
+                                onClick = { 
+                                    showReferenceDialog = false
+                                    selectedReference = null
+                                }
+                            ) {
+                                Icon(
+                                    Icons.Filled.Close,
+                                    contentDescription = "关闭",
+                                    tint = MaterialTheme.colorScheme.onSurface
+                                )
+                            }
+                        }
+                        
+                        Spacer(modifier = Modifier.height(16.dp))
+                        
+                        // 引文信息
+                        selectedReference?.let { reference ->
+                            // 文档名称
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Icon(
+                                    Icons.Filled.Description,
+                                    contentDescription = null,
+                                    modifier = Modifier.size(20.dp),
+                                    tint = MaterialTheme.colorScheme.primary
+                                )
+                                Spacer(modifier = Modifier.width(8.dp))
+                                Text(
+                                    text = "文档名称",
+                                    style = MaterialTheme.typography.labelMedium,
+                                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)
+                                )
+                            }
+                            Spacer(modifier = Modifier.height(4.dp))
+                            Text(
+                                text = reference.documentName,
+                                style = MaterialTheme.typography.bodyLarge,
+                                color = MaterialTheme.colorScheme.onSurface
+                            )
+                            
+                            Spacer(modifier = Modifier.height(16.dp))
+                            
+                            // 文档ID
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Icon(
+                                    Icons.Filled.Tag,
+                                    contentDescription = null,
+                                    modifier = Modifier.size(20.dp),
+                                    tint = MaterialTheme.colorScheme.primary
+                                )
+                                Spacer(modifier = Modifier.width(8.dp))
+                                Text(
+                                    text = "文档ID",
+                                    style = MaterialTheme.typography.labelMedium,
+                                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)
+                                )
+                            }
+                            Spacer(modifier = Modifier.height(4.dp))
+                            Text(
+                                text = reference.documentId,
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = MaterialTheme.colorScheme.onSurface,
+                                fontFamily = androidx.compose.ui.text.font.FontFamily.Monospace
+                            )
+                            
+                            // 页码（如果有）
+                            reference.pageNumber?.let { pageNum ->
+                                Spacer(modifier = Modifier.height(16.dp))
+                                Row(
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    Icon(
+                                        Icons.Filled.Article,
+                                        contentDescription = null,
+                                        modifier = Modifier.size(20.dp),
+                                        tint = MaterialTheme.colorScheme.primary
+                                    )
+                                    Spacer(modifier = Modifier.width(8.dp))
+                                    Text(
+                                        text = "页码",
+                                        style = MaterialTheme.typography.labelMedium,
+                                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)
+                                    )
+                                }
+                                Spacer(modifier = Modifier.height(4.dp))
+                                Text(
+                                    text = "第 $pageNum 页",
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    color = MaterialTheme.colorScheme.onSurface
+                                )
+                            }
+                            
+                            Spacer(modifier = Modifier.height(24.dp))
+                            
+                            // 提示信息
+                            Card(
+                                modifier = Modifier.fillMaxWidth(),
+                                colors = CardDefaults.cardColors(
+                                    containerColor = MaterialTheme.colorScheme.primaryContainer
+                                ),
+                                shape = RoundedCornerShape(8.dp)
+                            ) {
+                                Row(
+                                    modifier = Modifier.padding(12.dp),
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    Icon(
+                                        Icons.Filled.Info,
+                                        contentDescription = null,
+                                        modifier = Modifier.size(20.dp),
+                                        tint = MaterialTheme.colorScheme.onPrimaryContainer
+                                    )
+                                    Spacer(modifier = Modifier.width(8.dp))
+                                    Text(
+                                        text = "这是AI生成的引文示例，用于演示引用功能。实际使用时将显示真实的文档内容。",
+                                        style = MaterialTheme.typography.bodySmall,
+                                        color = MaterialTheme.colorScheme.onPrimaryContainer
+                                    )
+                                }
+                            }
+                        }
+                        
+                        Spacer(modifier = Modifier.height(16.dp))
+                        
+                        // 确认按钮
+                        Button(
+                            onClick = { 
+                                showReferenceDialog = false
+                                selectedReference = null
+                            },
+                            modifier = Modifier.fillMaxWidth(),
+                            shape = RoundedCornerShape(8.dp)
+                        ) {
+                            Text("了解")
+                        }
+                    }
+                }
+            }
+        }
     }
 }
 
 @Composable
-fun DomainMessageItem(message: com.sdu.novaglide.domain.model.ChatMessage) {
+fun DomainMessageItem(
+    message: com.sdu.novaglide.domain.model.ChatMessage,
+    onNavigateToNewsDetail: (String) -> Unit = {},
+    onShowReferenceDialog: (com.sdu.novaglide.domain.model.DocumentReference) -> Unit
+) {
     Column(
         modifier = Modifier.fillMaxWidth(),
         horizontalAlignment = if (message.role == com.sdu.novaglide.domain.model.MessageRole.USER) 
@@ -448,6 +825,13 @@ fun DomainMessageItem(message: com.sdu.novaglide.domain.model.ChatMessage) {
                     MarkdownText(
                         content = displayContent,
                         textColor = textColor,
+                        references = message.references,
+                        onReferenceClick = { referenceId ->
+                            // 处理引文点击事件，导航到新闻详情页面
+                            Log.d("QnaScreen", "点击引文，文档ID: $referenceId")
+                            onNavigateToNewsDetail(referenceId)
+                        },
+                        onShowReferenceDialog = onShowReferenceDialog,
                         modifier = Modifier.fillMaxWidth()
                     )
                 }

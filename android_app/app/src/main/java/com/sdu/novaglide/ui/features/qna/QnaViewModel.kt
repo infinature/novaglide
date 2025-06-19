@@ -239,18 +239,33 @@ class QnaViewModel(
                 ).collect { (content, references) ->
                     Log.d(TAG, "收到流式响应片段，长度: ${content.length}, 引用文档数: ${references?.size ?: 0}")
                     finalContent = content
-                    finalReferences = references
+                    
+                    // 如果RAGFlow没有返回引用，尝试从内容中提取
+                    finalReferences = if (references.isNullOrEmpty()) {
+                        Log.d(TAG, "RAGFlow未返回引用文档，尝试从内容中提取引文")
+                        val extractedRefs = extractReferencesFromContent(content)
+                        if (extractedRefs.isNotEmpty()) {
+                            Log.d(TAG, "成功从内容中提取到${extractedRefs.size}个引用")
+                            extractedRefs
+                        } else {
+                            Log.d(TAG, "内容中未找到引文格式")
+                            emptyList()
+                        }
+                    } else {
+                        Log.d(TAG, "使用RAGFlow返回的${references.size}个引用文档")
+                        references
+                    }
                     
                     // 更新消息列表，替换加载中的消息
-                    Log.d(TAG, "收到流式响应更新，内容长度：${content.length}，引用数量：${references?.size ?: 0}")
+                    Log.d(TAG, "收到流式响应更新，内容长度：${content.length}，最终引用数量：${finalReferences?.size ?: 0}")
                     _messages.value = _messages.value.map { message ->
                         if (message.id == loadingMessage.id) {
                             val updatedMessage = message.copy(
                                 content = content,
                                 isLoading = false,
-                                references = references ?: emptyList()
+                                references = finalReferences ?: emptyList()
                             )
-                            Log.d(TAG, "更新后的消息内容：${updatedMessage.content.take(50)}...")
+                            Log.d(TAG, "更新后的消息内容：${updatedMessage.content.take(50)}..., 引用数量：${updatedMessage.references.size}")
                             updatedMessage
                         } else {
                             message
@@ -262,7 +277,7 @@ class QnaViewModel(
                 }
                 
                 // 确保最终消息已更新
-                Log.d(TAG, "完成流式响应接收，最终内容长度：${finalContent.length}")
+                Log.d(TAG, "完成流式响应接收，最终内容长度：${finalContent.length}，最终引用数量：${finalReferences?.size ?: 0}")
                 _messages.value = _messages.value.map { message ->
                     if (message.id == loadingMessage.id) {
                         val finalMessage = message.copy(
@@ -270,7 +285,7 @@ class QnaViewModel(
                             isLoading = false,
                             references = finalReferences ?: emptyList()
                         )
-                        Log.d(TAG, "最终消息内容更新：${finalMessage.content.take(50)}...")
+                        Log.d(TAG, "最终消息内容更新：${finalMessage.content.take(50)}..., 最终引用数量：${finalMessage.references.size}")
                         finalMessage
                     } else {
                         message
@@ -363,5 +378,51 @@ class QnaViewModel(
                 _isLoading.value = false
             }
         }
+    }
+
+    /**
+     * 从AI回答内容中提取引文并生成模拟的DocumentReference
+     * 用于处理RAGFlow不返回quoted_documents的情况
+     */
+    private fun extractReferencesFromContent(content: String): List<DocumentReference> {
+        val references = mutableListOf<DocumentReference>()
+        
+        // 匹配各种引文格式
+        val patterns = listOf(
+            Regex("""##(\d+)\$\$"""),  // ##数字$$
+            Regex("""\[\[(\d+)\]\]"""), // [[数字]]
+            Regex("""#(\d+)#"""),       // #数字#
+            Regex("""\$\$(\d+)\$\$""")  // $$数字$$
+        )
+        
+        val foundNumbers = mutableSetOf<Int>()
+        
+        patterns.forEach { pattern ->
+            pattern.findAll(content).forEach { matchResult ->
+                val numberStr = matchResult.groupValues[1]
+                val number = numberStr.toIntOrNull()
+                if (number != null && !foundNumbers.contains(number)) {
+                    foundNumbers.add(number)
+                    
+                    val reference = DocumentReference(
+                        documentId = "ref_$number", // 使用引文编号作为文档ID
+                        documentName = "引用文档 $number",
+                        documentType = "pdf",
+                        content = "这是第${number}号引用文档的内容摘要",
+                        pageNumber = null,
+                        confidence = 0.8f,
+                        source = "RAGFlow知识库"
+                    )
+                    references.add(reference)
+                    Log.d(TAG, "生成模拟引用: 编号[$number] -> 文档ID[${reference.documentId}]")
+                }
+            }
+        }
+        
+        // 按编号排序
+        references.sortBy { it.documentId.removePrefix("ref_").toIntOrNull() ?: 0 }
+        
+        Log.d(TAG, "从内容中提取到${references.size}个引用: ${foundNumbers.sorted()}")
+        return references
     }
 } 

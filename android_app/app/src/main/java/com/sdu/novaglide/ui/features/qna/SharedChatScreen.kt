@@ -43,6 +43,7 @@ fun SharedChatScreen(
     sharedId: String,
     authToken: String,
     onNavigateBack: () -> Unit,
+    onNavigateToNewsDetail: (String) -> Unit = {},
     viewModel: QnaViewModel
 ) {
     val coroutineScope = rememberCoroutineScope()
@@ -157,7 +158,14 @@ fun SharedChatScreen(
                         contentPadding = PaddingValues(vertical = 16.dp)
                     ) {
                         items(messages) { message ->
-                            DomainMessageItem(message = message)
+                            DomainMessageItem(
+                                message = message,
+                                onNavigateToNewsDetail = onNavigateToNewsDetail,
+                                onShowReferenceDialog = { _ -> 
+                                    // SharedChatScreen中暂时不显示引文对话框
+                                    // 可以在未来添加此功能
+                                }
+                            )
                         }
                     }
                 }

@@ -594,6 +594,31 @@ class ChatRepositoryImpl(
             if (totalLinesProcessed > 0 && successfullyProcessed == 0) {
                 Log.w(TAG, "[RAGFLOW] 注意: 已处理${totalLinesProcessed}行数据，但没有成功解析任何消息，尝试整体解析")
                 val fullResponse = fullResponseBuilder.toString()
+                
+                // 尝试提取quoted_documents
+                var globalQuotedDocuments: List<RagFlowDocument>? = null
+                try {
+                    val quotedDocsPattern = """\"quoted_documents\":\s*\[(.*?)\]"""
+                    val quotedDocsMatcher = Regex(quotedDocsPattern, RegexOption.DOT_MATCHES_ALL).find(fullResponse)
+                    if (quotedDocsMatcher != null) {
+                        val quotedDocsJson = "[${quotedDocsMatcher.groupValues[1]}]"
+                        val quotedDocsArray = org.json.JSONArray(quotedDocsJson)
+                        globalQuotedDocuments = (0 until quotedDocsArray.length()).mapNotNull { i -> 
+                            quotedDocsArray.optJSONObject(i)?.let { 
+                                try {
+                                    gson.fromJson(it.toString(), RagFlowDocument::class.java)
+                                } catch (e: Exception) {
+                                    Log.e(TAG, "[RAGFLOW] 整体解析quoted_documents中的文档失败: ${e.message}")
+                                    null
+                                }
+                            } 
+                        }
+                        Log.d(TAG, "[RAGFLOW] 整体响应中提取到${globalQuotedDocuments?.size ?: 0}个quoted_documents")
+                    }
+                } catch (e: Exception) {
+                    Log.e(TAG, "[RAGFLOW] 整体提取quoted_documents失败: ${e.message}")
+                }
+                
                 try {
                     val jsonPattern = """{.*?\"answer\".*?}"""
                     val matcher = Regex(jsonPattern, RegexOption.DOT_MATCHES_ALL).find(fullResponse)
@@ -613,11 +638,14 @@ class ChatRepositoryImpl(
                             val answerContent = matcher.groupValues[1]
                             if (answerContent.isNotEmpty()) {
                                 val streamData = com.sdu.novaglide.data.remote.dto.ragflow.RagFlowStreamData(
-                                    conversationId = "", content = answerContent, status = "finished"
+                                    conversationId = "", 
+                                    content = answerContent, 
+                                    status = "finished",
+                                    quotedDocuments = globalQuotedDocuments
                                 )
                                 onChunk(RagFlowStreamResponse(code = 0, message = "", data = streamData))
                                 successfullyProcessed++
-                                Log.d(TAG, "[RAGFLOW] 通过整体正则提取回答，长度: ${answerContent.length}")
+                                Log.d(TAG, "[RAGFLOW] 通过整体正则提取回答，回答长度: ${answerContent.length}，引用文档数: ${globalQuotedDocuments?.size ?: 0}")
                             }
                         }
                     } catch (e: Exception) {
@@ -653,32 +681,78 @@ class ChatRepositoryImpl(
         val logContent = if (jsonData.length > 100) jsonData.take(100) + "..." else jsonData
         Log.d(TAG, "[RAGFLOW] 处理JSON数据，行号: $lineNumber, 长度: ${jsonData.length}, 内容: $logContent")
         var success = false
+        var quotedDocuments: List<RagFlowDocument>? = null
+        
         try {
             val jsonObject = JSONObject(jsonData)
+            
+            // 检查是否有quoted_documents字段
+            if (jsonObject.has("quoted_documents")) {
+                Log.d(TAG, "[RAGFLOW] 发现quoted_documents字段")
+                val quotedDocsArray = jsonObject.optJSONArray("quoted_documents")
+                if (quotedDocsArray != null && quotedDocsArray.length() > 0) {
+                    quotedDocuments = (0 until quotedDocsArray.length()).mapNotNull { i -> 
+                        quotedDocsArray.optJSONObject(i)?.let { 
+                            try {
+                                gson.fromJson(it.toString(), RagFlowDocument::class.java)
+                            } catch (e: Exception) {
+                                Log.e(TAG, "[RAGFLOW] 解析quoted_documents中的文档失败: ${e.message}")
+                                null
+                            }
+                        } 
+                    }
+                    Log.d(TAG, "[RAGFLOW] 成功解析${quotedDocuments?.size ?: 0}个quoted_documents")
+                } else {
+                    Log.d(TAG, "[RAGFLOW] quoted_documents数组为空或null")
+                }
+            }
+            
             if (jsonObject.has("code") && jsonObject.has("data")) {
                 val dataObj = jsonObject.optJSONObject("data")
                 if (dataObj != null && dataObj.has("answer")) {
                     val answerContent = dataObj.getString("answer")
                     val sessionId = dataObj.optString("session_id", "")
-                    val streamData = com.sdu.novaglide.data.remote.dto.ragflow.RagFlowStreamData(
-                        conversationId = sessionId, content = answerContent, 
-                        status = if (dataObj.optString("status", "running") == "finished") "finished" else "running",
-                        quotedDocuments = dataObj.optJSONArray("quoted_documents")?.let { arr ->
-                            (0 until arr.length()).mapNotNull { i -> arr.optJSONObject(i)?.let { gson.fromJson(it.toString(), RagFlowDocument::class.java) } }
+                    
+                    // 再次检查data对象中的quoted_documents
+                    if (dataObj.has("quoted_documents") && quotedDocuments == null) {
+                        Log.d(TAG, "[RAGFLOW] 在data对象中发现quoted_documents字段")
+                        val quotedDocsArray = dataObj.optJSONArray("quoted_documents")
+                        if (quotedDocsArray != null && quotedDocsArray.length() > 0) {
+                            quotedDocuments = (0 until quotedDocsArray.length()).mapNotNull { i -> 
+                                quotedDocsArray.optJSONObject(i)?.let { 
+                                    try {
+                                        gson.fromJson(it.toString(), RagFlowDocument::class.java)
+                                    } catch (e: Exception) {
+                                        Log.e(TAG, "[RAGFLOW] 解析data.quoted_documents中的文档失败: ${e.message}")
+                                        null
+                                    }
+                                } 
+                            }
+                            Log.d(TAG, "[RAGFLOW] 在data对象中成功解析${quotedDocuments?.size ?: 0}个quoted_documents")
                         }
+                    }
+                    
+                    val streamData = com.sdu.novaglide.data.remote.dto.ragflow.RagFlowStreamData(
+                        conversationId = sessionId, 
+                        content = answerContent, 
+                        status = if (dataObj.optString("status", "running") == "finished") "finished" else "running",
+                        quotedDocuments = quotedDocuments
                     )
                     onChunk(RagFlowStreamResponse(code = 0, message = "", data = streamData))
                     success = true
-                    Log.d(TAG, "[RAGFLOW] 成功解析标准格式JSON，长度: ${answerContent.length}")
+                    Log.d(TAG, "[RAGFLOW] 成功解析标准格式JSON，回答长度: ${answerContent.length}，引用文档数: ${quotedDocuments?.size ?: 0}")
                 }
             } else if (jsonObject.has("answer")) {
                 val answerContent = jsonObject.getString("answer")
                 val streamData = com.sdu.novaglide.data.remote.dto.ragflow.RagFlowStreamData(
-                    conversationId = "", content = answerContent, status = "finished"
+                    conversationId = "", 
+                    content = answerContent, 
+                    status = "finished",
+                    quotedDocuments = quotedDocuments
                 )
                 onChunk(RagFlowStreamResponse(code = 0, message = "", data = streamData))
                 success = true
-                Log.d(TAG, "[RAGFLOW] 成功解析直接answer JSON，长度: ${answerContent.length}")
+                Log.d(TAG, "[RAGFLOW] 成功解析直接answer JSON，回答长度: ${answerContent.length}，引用文档数: ${quotedDocuments?.size ?: 0}")
             }
         } catch (e: Exception) {
             Log.e(TAG, "[RAGFLOW] 解析JSON数据失败: ${e.message}")
@@ -689,12 +763,40 @@ class ChatRepositoryImpl(
                 if (matcher != null) {
                     val answerContent = matcher.groupValues[1]
                     if (answerContent.isNotEmpty()) {
+                        // 尝试用正则提取quoted_documents
+                        if (quotedDocuments == null) {
+                            val quotedDocsPattern = """\"quoted_documents\":\s*\[(.*?)\]"""
+                            val quotedDocsMatcher = Regex(quotedDocsPattern, RegexOption.DOT_MATCHES_ALL).find(jsonData)
+                            if (quotedDocsMatcher != null) {
+                                try {
+                                    val quotedDocsJson = "[${quotedDocsMatcher.groupValues[1]}]"
+                                    val quotedDocsArray = org.json.JSONArray(quotedDocsJson)
+                                    quotedDocuments = (0 until quotedDocsArray.length()).mapNotNull { i -> 
+                                        quotedDocsArray.optJSONObject(i)?.let { 
+                                            try {
+                                                gson.fromJson(it.toString(), RagFlowDocument::class.java)
+                                            } catch (e: Exception) {
+                                                Log.e(TAG, "[RAGFLOW] 正则提取quoted_documents中的文档失败: ${e.message}")
+                                                null
+                                            }
+                                        } 
+                                    }
+                                    Log.d(TAG, "[RAGFLOW] 通过正则成功提取${quotedDocuments?.size ?: 0}个quoted_documents")
+                                } catch (e: Exception) {
+                                    Log.e(TAG, "[RAGFLOW] 正则提取quoted_documents失败: ${e.message}")
+                                }
+                            }
+                        }
+                        
                         val streamData = com.sdu.novaglide.data.remote.dto.ragflow.RagFlowStreamData(
-                            conversationId = "", content = answerContent, status = "finished"
+                            conversationId = "", 
+                            content = answerContent, 
+                            status = "finished",
+                            quotedDocuments = quotedDocuments
                         )
                         onChunk(RagFlowStreamResponse(code = 0, message = "", data = streamData))
                         success = true
-                        Log.d(TAG, "[RAGFLOW] 通过正则提取回答，长度: ${answerContent.length}")
+                        Log.d(TAG, "[RAGFLOW] 通过正则提取回答，回答长度: ${answerContent.length}，引用文档数: ${quotedDocuments?.size ?: 0}")
                     }
                 }
             } catch (e2: Exception) {

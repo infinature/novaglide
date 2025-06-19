@@ -171,7 +171,7 @@ fun AppNavigation(
                 }
             )
         }
-                // 首页
+        // 首页
         composable(AppRoute.HOME) {
             HomeScreen(
                 userInfoViewModel = actualUserInfoViewModel,
@@ -181,7 +181,7 @@ fun AppNavigation(
                 onNavigateToQna = { navController.navigate(AppRoute.QNA) },
                 onNavigateToProfile = { navController.navigate(AppRoute.PROFILE) },
                 onNavigateToSearch = { navController.navigate(AppRoute.SEARCH) },
-                onNavigateToNewsDetail = { documentId ->
+                onNavigateToNewsDetail = { documentId -> 
                     navController.navigate("${AppRoute.NEWS_DETAIL}/$documentId") // 使用 AppRoute.NEWS_DETAIL
                 }
             )
@@ -192,6 +192,9 @@ fun AppNavigation(
             QnaScreen( // 使用正确的 QnaScreen Composable 名称
                 onNavigateBack = { navController.popBackStack() },
                 onNavigateToSettings = { navController.navigate(AppRoute.API_SETTINGS) },
+                onNavigateToNewsDetail = { documentId ->
+                    navController.navigate("${AppRoute.NEWS_DETAIL}/$documentId")
+                },
                 viewModel = qnaViewModel // 传递 qnaViewModel
             )
         }
