@@ -27,7 +27,7 @@ object ApiClient {
     }
 
     private val retrofit = Retrofit.Builder()
-        .baseUrl("https://frp-off.com:65008/")
+        .baseUrl("https://frp-rug.com:65008/")
         .addConverterFactory(GsonConverterFactory.create())
         .client(getUnsafeOkHttpClient())
         .build()

@@ -35,14 +35,14 @@ import java.util.*
 fun SearchScreen(
     searchViewModel: SearchViewModel,
     userInfoViewModel: UserInfoViewModel,
-    newsViewModel: com.sdu.novaglide.ui.features.home.NewsViewModel? = null,
+    newsViewModel: com.sdu.novaglide.ui.features.home.NewsViewModel,
     onNavigateBack: () -> Unit,
     onSearch: (String) -> Unit
 ) {
-    val searchQuery by searchViewModel.searchQuery.collectAsState()
+    val searchQuery by newsViewModel.searchQuery.collectAsState()
     val searchHistory by searchViewModel.searchHistory.collectAsState()
     val hotSearches by searchViewModel.hotSearches.collectAsState()
-    val searchSuggestions by searchViewModel.searchSuggestions.collectAsState()
+    val searchSuggestions by searchViewModel.getSearchSuggestions(newsViewModel.searchQuery).collectAsState()
     val userInfoState by userInfoViewModel.userInfoState.collectAsState()
     val keyboardController = LocalSoftwareKeyboardController.current
     
@@ -57,14 +57,10 @@ fun SearchScreen(
         }
     }
     
-    // 同步NewsViewModel的当前搜索查询
-    LaunchedEffect(newsViewModel) {
-        newsViewModel?.let { vm ->
-            val currentQuery = vm.searchQuery.value
-            if (currentQuery.isNotEmpty() && searchQuery.isEmpty()) {
-                searchViewModel.updateSearchQuery(currentQuery)
-            }
-        }
+    // 页面进入时确保搜索状态的一致性
+    LaunchedEffect(Unit) {
+        // 如果从其他页面传入了搜索查询，但用户已经清空了本地状态，保持清空状态
+        android.util.Log.d("SearchScreen", "页面加载，当前搜索查询: '$searchQuery'")
     }
     
     // 获取默认热门搜索
@@ -81,7 +77,7 @@ fun SearchScreen(
                 title = { 
                     OutlinedTextField(
                         value = searchQuery,
-                        onValueChange = { searchViewModel.updateSearchQuery(it) },
+                        onValueChange = { newsViewModel.updateSearchQuery(it) },
                         modifier = Modifier.fillMaxWidth(),
                         placeholder = { 
                             Text(
@@ -103,13 +99,28 @@ fun SearchScreen(
                         ),
                         keyboardActions = KeyboardActions(
                             onSearch = {
-                                val query = searchViewModel.performSearch(searchQuery)
-                                if (query.isNotEmpty()) {
+                                if (searchQuery.isNotEmpty()) {
+                                    searchViewModel.performSearch(searchQuery)
                                     keyboardController?.hide()
-                                    onSearch(query)
+                                    onSearch(searchQuery)
                                 }
                             }
-                        )
+                        ),
+                        trailingIcon = {
+                            if (searchQuery.isNotEmpty()) {
+                                IconButton(
+                                    onClick = {
+                                        newsViewModel.clearSearch()
+                                    }
+                                ) {
+                                    Icon(
+                                        Icons.Filled.Clear,
+                                        contentDescription = "清空搜索",
+                                        tint = MaterialTheme.colorScheme.onSurfaceVariant
+                                    )
+                                }
+                            }
+                        }
                     )
                 },
                 navigationIcon = {
@@ -121,11 +132,9 @@ fun SearchScreen(
                     if (searchQuery.isNotEmpty()) {
                         TextButton(
                             onClick = {
-                                val query = searchViewModel.performSearch(searchQuery)
-                                if (query.isNotEmpty()) {
-                                    keyboardController?.hide()
-                                    onSearch(query)
-                                }
+                                searchViewModel.performSearch(searchQuery)
+                                keyboardController?.hide()
+                                onSearch(searchQuery)
                             }
                         ) {
                             Text("搜索", color = MaterialTheme.colorScheme.primary, fontSize = 14.sp.scaledSp())
@@ -148,12 +157,10 @@ fun SearchScreen(
                     SearchSuggestionsSection(
                         suggestions = searchSuggestions,
                         onSuggestionClick = { suggestion ->
-                            searchViewModel.updateSearchQuery(suggestion)
-                            val query = searchViewModel.performSearch(suggestion)
-                            if (query.isNotEmpty()) {
-                                keyboardController?.hide()
-                                onSearch(query)
-                            }
+                            newsViewModel.updateSearchQuery(suggestion)
+                            searchViewModel.performSearch(suggestion)
+                            keyboardController?.hide()
+                            onSearch(suggestion)
                         }
                     )
                 }
@@ -165,12 +172,10 @@ fun SearchScreen(
                     HotSearchesSection(
                         hotSearches = displayHotSearches,
                         onHotSearchClick = { hotSearch ->
-                            searchViewModel.updateSearchQuery(hotSearch)
-                            val query = searchViewModel.performSearch(hotSearch)
-                            if (query.isNotEmpty()) {
-                                keyboardController?.hide()
-                                onSearch(query)
-                            }
+                            newsViewModel.updateSearchQuery(hotSearch)
+                            searchViewModel.performSearch(hotSearch)
+                            keyboardController?.hide()
+                            onSearch(hotSearch)
                         }
                     )
                 }
@@ -182,12 +187,10 @@ fun SearchScreen(
                     SearchHistorySection(
                         searchHistory = searchHistory,
                         onHistoryClick = { historyItem ->
-                            searchViewModel.updateSearchQuery(historyItem.searchQuery)
-                            val query = searchViewModel.performSearch(historyItem.searchQuery)
-                            if (query.isNotEmpty()) {
-                                keyboardController?.hide()
-                                onSearch(query)
-                            }
+                            newsViewModel.updateSearchQuery(historyItem.searchQuery)
+                            searchViewModel.performSearch(historyItem.searchQuery)
+                            keyboardController?.hide()
+                            onSearch(historyItem.searchQuery)
                         },
                         onDeleteHistory = { historyItem ->
                             searchViewModel.deleteSearchHistory(historyItem.searchQuery)
@@ -297,78 +300,181 @@ private fun SearchHistorySection(
     onDeleteHistory: (SearchHistoryEntity) -> Unit,
     onClearAllHistory: () -> Unit
 ) {
-    Column {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(bottom = 8.dp),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f)
+        ),
+        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+    ) {
+        Column(
+            modifier = Modifier.padding(16.dp)
         ) {
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Icon(
-                    Icons.Filled.History,
-                    contentDescription = null,
-                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                    modifier = Modifier.size(20.dp)
-                )
-                Spacer(modifier = Modifier.width(8.dp))
-                Text(
-                    text = "搜索历史",
-                    fontSize = 16.sp.scaledSp(),
-                    fontWeight = FontWeight.Bold,
-                    color = MaterialTheme.colorScheme.onSurface
-                )
-            }
-            
-            TextButton(onClick = onClearAllHistory) {
-                Text(
-                    text = "清空",
-                    fontSize = 12.sp.scaledSp(),
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-            }
-        }
-        
-        searchHistory.forEach { historyItem ->
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .clickable { onHistoryClick(historyItem) }
-                    .padding(vertical = 8.dp),
+                    .padding(bottom = 12.dp),
+                horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                Icon(
-                    Icons.Filled.History,
-                    contentDescription = null,
-                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                    modifier = Modifier.size(16.dp)
-                )
-                Spacer(modifier = Modifier.width(12.dp))
-                Column(modifier = Modifier.weight(1f)) {
-                    Text(
-                        text = historyItem.searchQuery,
-                        fontSize = 14.sp.scaledSp(),
-                        color = MaterialTheme.colorScheme.onSurface,
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Icon(
+                        Icons.Filled.History,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.primary,
+                        modifier = Modifier.size(20.dp)
                     )
+                    Spacer(modifier = Modifier.width(8.dp))
                     Text(
-                        text = formatSearchTime(historyItem.searchTime),
-                        fontSize = 12.sp.scaledSp(),
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                        text = "搜索历史",
+                        fontSize = 16.sp.scaledSp(),
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.onSurface
                     )
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Surface(
+                        shape = RoundedCornerShape(8.dp),
+                        color = MaterialTheme.colorScheme.primary.copy(alpha = 0.1f)
+                    ) {
+                        Text(
+                            text = "${searchHistory.size}",
+                            fontSize = 10.sp.scaledSp(),
+                            color = MaterialTheme.colorScheme.primary,
+                            modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
+                        )
+                    }
                 }
-                IconButton(
-                    onClick = { onDeleteHistory(historyItem) },
-                    modifier = Modifier.size(24.dp)
+                
+                TextButton(
+                    onClick = onClearAllHistory,
+                    contentPadding = PaddingValues(horizontal = 8.dp, vertical = 4.dp)
                 ) {
                     Icon(
-                        Icons.Filled.Close,
-                        contentDescription = "删除",
-                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                        modifier = Modifier.size(16.dp)
+                        Icons.Filled.DeleteSweep,
+                        contentDescription = null,
+                        modifier = Modifier.size(16.dp),
+                        tint = MaterialTheme.colorScheme.error
                     )
+                    Spacer(modifier = Modifier.width(4.dp))
+                    Text(
+                        text = "清空",
+                        fontSize = 12.sp.scaledSp(),
+                        color = MaterialTheme.colorScheme.error
+                    )
+                }
+            }
+            
+            if (searchHistory.isEmpty()) {
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(vertical = 24.dp),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Column(
+                        horizontalAlignment = Alignment.CenterHorizontally
+                    ) {
+                        Icon(
+                            Icons.Filled.SearchOff,
+                            contentDescription = null,
+                            modifier = Modifier.size(32.dp),
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f)
+                        )
+                        Spacer(modifier = Modifier.height(8.dp))
+                        Text(
+                            text = "暂无搜索历史",
+                            fontSize = 14.sp.scaledSp(),
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                }
+            } else {
+                searchHistory.forEachIndexed { index, historyItem ->
+                    Card(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clickable { onHistoryClick(historyItem) }
+                            .padding(vertical = 2.dp),
+                        colors = CardDefaults.cardColors(
+                            containerColor = MaterialTheme.colorScheme.surface
+                        ),
+                        elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
+                    ) {
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(12.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Surface(
+                                shape = RoundedCornerShape(6.dp),
+                                color = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.3f),
+                                modifier = Modifier.size(24.dp)
+                            ) {
+                                Box(contentAlignment = Alignment.Center) {
+                                    Text(
+                                        text = "${index + 1}",
+                                        fontSize = 10.sp.scaledSp(),
+                                        fontWeight = FontWeight.Bold,
+                                        color = MaterialTheme.colorScheme.primary
+                                    )
+                                }
+                            }
+                            
+                            Spacer(modifier = Modifier.width(12.dp))
+                            
+                            Column(modifier = Modifier.weight(1f)) {
+                                Text(
+                                    text = historyItem.searchQuery,
+                                    fontSize = 14.sp.scaledSp(),
+                                    color = MaterialTheme.colorScheme.onSurface,
+                                    maxLines = 1,
+                                    overflow = TextOverflow.Ellipsis,
+                                    fontWeight = FontWeight.Medium
+                                )
+                                Row(
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    modifier = Modifier.padding(top = 2.dp)
+                                ) {
+                                    Text(
+                                        text = formatSearchTime(historyItem.searchTime),
+                                        fontSize = 11.sp.scaledSp(),
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                                    )
+                                    if (historyItem.searchCount > 1) {
+                                        Spacer(modifier = Modifier.width(8.dp))
+                                        Surface(
+                                            shape = RoundedCornerShape(4.dp),
+                                            color = MaterialTheme.colorScheme.tertiary.copy(alpha = 0.2f)
+                                        ) {
+                                            Text(
+                                                text = "搜索${historyItem.searchCount}次",
+                                                fontSize = 9.sp.scaledSp(),
+                                                color = MaterialTheme.colorScheme.tertiary,
+                                                modifier = Modifier.padding(horizontal = 4.dp, vertical = 1.dp)
+                                            )
+                                        }
+                                    }
+                                }
+                            }
+                            
+                            IconButton(
+                                onClick = { onDeleteHistory(historyItem) },
+                                modifier = Modifier.size(32.dp)
+                            ) {
+                                Icon(
+                                    Icons.Filled.Close,
+                                    contentDescription = "删除",
+                                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    modifier = Modifier.size(16.dp)
+                                )
+                            }
+                        }
+                    }
+                    
+                    if (index < searchHistory.size - 1) {
+                        Spacer(modifier = Modifier.height(4.dp))
+                    }
                 }
             }
         }

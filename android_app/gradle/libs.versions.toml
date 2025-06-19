@@ -21,6 +21,7 @@ ksp = "1.9.0-1.0.13"
 compose-compiler = "1.5.0"
 # Accompanist (下拉刷新支持)
 accompanist = "0.32.0"
+compose-animation = "1.5.0"
 
 [libraries]
 androidx-core-ktx = { group = "androidx.core", name = "core-ktx", version.ref = "core-ktx" }
@@ -63,6 +64,8 @@ androidx-hilt-navigation-compose = { group = "androidx.hilt", name = "hilt-navig
 
 # Accompanist
 accompanist-swiperefresh = { group = "com.google.accompanist", name = "accompanist-swiperefresh", version.ref = "accompanist" }
+
+androidx-compose-animation = { group = "androidx.compose.animation", name = "animation", version.ref = "compose-animation" }
 
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }

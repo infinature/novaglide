@@ -1,5 +1,6 @@
 package com.sdu.novaglide.ui.features.home
 
+import android.util.Log
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
@@ -46,6 +47,30 @@ import com.sdu.novaglide.ui.features.home.NewsArticle
 import com.sdu.novaglide.ui.features.home.NewsRepository
 import androidx.lifecycle.viewmodel.compose.viewModel
 
+/**
+ * 获取类别映射关系，用于灵活匹配不同的类别名称
+ */
+fun getCategoryMappings(): Map<String, List<String>> {
+    return mapOf(
+        "保研" to listOf("保研", "保送", "研究生推免", "推免", "保送研究生"),
+        "考研" to listOf("考研", "研究生考试", "考研究生", "硕士研究生", "研究生"),
+        "就业" to listOf("就业", "求职", "工作", "招聘", "职业", "找工作", "就业指导"),
+        "考公" to listOf("考公", "公务员", "国考", "省考", "事业单位", "公考", "公务员考试")
+    )
+}
+
+/**
+ * 检查文章是否属于指定类别
+ */
+fun isArticleInCategory(article: NewsArticle, targetCategory: String): Boolean {
+    val categoryMappings = getCategoryMappings()
+    val possibleCategories = categoryMappings[targetCategory] ?: listOf(targetCategory)
+    return possibleCategories.any { category ->
+        article.category.contains(category, ignoreCase = true) ||
+        category.contains(article.category, ignoreCase = true)
+    }
+}
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun HomeScreen(
@@ -72,7 +97,7 @@ fun HomeScreen(
             newsViewModel.fetchNews()
         }
     }
-    val tabs = listOf("保研", "考研", "留学", "考公","推荐")
+    val tabs = listOf("保研", "考研", "就业", "考公","推荐")
     val currentUserState by userInfoViewModel.userInfoState.collectAsState()
     
     // 获取用户浏览历史和收藏记录用于推荐算法
@@ -94,6 +119,9 @@ fun HomeScreen(
     
     val displayedNewsItems = remember(selectedTabIndex, newsList, browsingHistoryList, favoritesList, currentUserState, refreshTimestamp) {
         val tab = tabs[selectedTabIndex]
+        Log.d("HomeScreen", "当前选中标签: $tab")
+        Log.d("HomeScreen", "所有新闻数量: ${newsList.size}")
+        
         if (tab == "推荐") {
             // 应用推荐算法
             if (currentUserState is UserInfoState.Success) {
@@ -103,8 +131,18 @@ fun HomeScreen(
                 generateDefaultRecommendations(newsList)
             }
         } else {
+            // 使用类别映射进行更灵活的筛选
+            val filteredNews = newsList.filter { article ->
+                isArticleInCategory(article, tab)
+            }
+            
+            Log.d("HomeScreen", "标签'$tab'筛选后文章数: ${filteredNews.size}")
+            if (filteredNews.isEmpty()) {
+                Log.d("HomeScreen", "该类别无文章，所有文章的类别: ${newsList.map { it.category }.distinct()}")
+            }
+            
             // 为所有其他类别也添加随机排列功能
-            generateCategoryRecommendations(newsList.filter { it.category == tab }, refreshTimestamp)
+            generateCategoryRecommendations(filteredNews, refreshTimestamp)
         }
     }
 
@@ -197,28 +235,28 @@ fun HomeScreen(
             onRefresh = { newsViewModel.refreshNews() },
             modifier = Modifier.fillMaxSize()
         ) {
-            // 资讯列表
-            LazyColumn(
+        // 资讯列表
+        LazyColumn(
                 state = listState, // 添加滚动状态
-                contentPadding = paddingValues,
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(horizontal = 16.dp)
-            ) {
-                items(displayedNewsItems, key = { it.id }) { newsArticle -> 
-                    NewsCard( 
-                        newsArticle = newsArticle,
-                        onClick = {
-                            // 当用户登出后，currentUserState 会是 UserInfoState.Error
-                            // 此时不应该尝试记录浏览历史，因为没有有效的 userId
-                            if (currentUserState is UserInfoState.Success) {
-                                val userId = (currentUserState as UserInfoState.Success).userInfo.userId
-                                browsingHistoryViewModel.addBrowsingHistory(userId, newsArticle.id, newsArticle.title)
-                            }
-                            onNavigateToNewsDetail(newsArticle.id)
+            contentPadding = paddingValues,
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(horizontal = 16.dp)
+        ) {
+            items(displayedNewsItems, key = { it.id }) { newsArticle -> 
+                NewsCard( 
+                    newsArticle = newsArticle,
+                    onClick = {
+                        // 当用户登出后，currentUserState 会是 UserInfoState.Error
+                        // 此时不应该尝试记录浏览历史，因为没有有效的 userId
+                        if (currentUserState is UserInfoState.Success) {
+                            val userId = (currentUserState as UserInfoState.Success).userInfo.userId
+                            browsingHistoryViewModel.addBrowsingHistory(userId, newsArticle.id, newsArticle.title)
                         }
-                    )
-                    Spacer(modifier = Modifier.height(16.dp))
+                        onNavigateToNewsDetail(newsArticle.id)
+                    }
+                )
+                Spacer(modifier = Modifier.height(16.dp))
                 }
             }
         }
@@ -361,9 +399,12 @@ fun generateRecommendations(
     val usedCategories = mutableSetOf<String>()
     
     // 优先确保每个类别都有代表
-    val categories = listOf("保研", "考研", "留学", "考公")
+    val categories = listOf("保研", "考研", "就业", "考公")
     categories.forEach { category ->
-        val categoryArticles = sortedNews.filter { it.first.category == category && it.first !in recommendations }
+        val categoryArticles = sortedNews.filter { newsWithScore ->
+            val article = newsWithScore.first
+            article !in recommendations && isArticleInCategory(article, category)
+        }
         if (categoryArticles.isNotEmpty()) {
             recommendations.addAll(categoryArticles.take(3).map { it.first })
             usedCategories.add(category)
@@ -390,15 +431,15 @@ fun generateDefaultRecommendations(allNews: List<NewsArticle>): List<NewsArticle
     if (allNews.isEmpty()) return emptyList()
     
     // 按类别分组，每个类别取更多文章
-    val newsByCategory = allNews.groupBy { it.category }
     val recommendations = mutableListOf<NewsArticle>()
     
     // 从每个类别中选择最新的文章（增加每类别的文章数量）
-    val categories = listOf("保研", "考研", "留学", "考公")
+    val categories = listOf("保研", "考研", "就业", "考公")
     categories.forEach { category ->
-        val categoryNews = newsByCategory[category]
-            ?.sortedByDescending { it.publishTime }
-            ?.take(6) ?: emptyList() // 每个类别增加到6篇
+        val categoryNews = allNews.filter { article ->
+            isArticleInCategory(article, category)
+        }.sortedByDescending { it.publishTime }
+         .take(6) // 每个类别增加到6篇
         recommendations.addAll(categoryNews)
     }
     

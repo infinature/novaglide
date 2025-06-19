@@ -205,7 +205,7 @@ object ApiClient {
 
     // 创建Retrofit实例
     private val retrofit = Retrofit.Builder()
-        .baseUrl("https://frp-off.com:65008/")
+        .baseUrl("https://frp-rug.com:65008/")
         .addConverterFactory(GsonConverterFactory.create())
         .client(getUnsafeOkHttpClient())
         .build()
@@ -247,7 +247,7 @@ class NewsViewModel : ViewModel() {
 
     // 创建Retrofit API实例
     private val retrofit = Retrofit.Builder()
-        .baseUrl("https://frp-off.com:65008/")
+        .baseUrl("https://frp-rug.com:65008/")
         .addConverterFactory(GsonConverterFactory.create())
         .client(getUnsafeOkHttpClient())
         .build()

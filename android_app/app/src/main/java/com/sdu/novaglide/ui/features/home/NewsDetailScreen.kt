@@ -66,7 +66,7 @@ private fun getUnsafeOkHttpClient(): OkHttpClient {
 
 private suspend fun createApiService(context: Context): RagFlowApiService {
     val apiKeyStore = ApiKeyStore(context)
-    val serverUrl = apiKeyStore.ragFlowServerUrl.first() ?: "https://frp-off.com:65008/"
+    val serverUrl = apiKeyStore.ragFlowServerUrl.first() ?: "https://frp-rug.com:65008/"
     val retrofit = Retrofit.Builder()
         .baseUrl(serverUrl)
         .addConverterFactory(GsonConverterFactory.create())

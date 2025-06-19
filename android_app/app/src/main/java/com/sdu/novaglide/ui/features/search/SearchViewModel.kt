@@ -17,9 +17,6 @@ class SearchViewModel(
     private val searchHistoryRepository: SearchHistoryRepository
 ) : ViewModel() {
     
-    private val _searchQuery = MutableStateFlow("")
-    val searchQuery: StateFlow<String> = _searchQuery.asStateFlow()
-    
     private val _currentUserId = MutableStateFlow<String?>(null)
     
     // 搜索历史
@@ -44,24 +41,26 @@ class SearchViewModel(
         )
     
     // 搜索建议（基于搜索历史的筛选）
-    val searchSuggestions: StateFlow<List<String>> = combine(
-        searchQuery,
-        searchHistory
-    ) { query, history ->
-        if (query.isBlank()) {
-            emptyList()
-        } else {
-            history
-                .filter { it.searchQuery.contains(query, ignoreCase = true) }
-                .map { it.searchQuery }
-                .distinct()
-                .take(5)
-        }
-    }.stateIn(
-        scope = viewModelScope,
-        started = SharingStarted.WhileSubscribed(5000),
-        initialValue = emptyList()
-    )
+    fun getSearchSuggestions(query: StateFlow<String>): StateFlow<List<String>> {
+        return combine(
+            query,
+            searchHistory
+        ) { q, history ->
+            if (q.isBlank()) {
+                emptyList()
+            } else {
+                history
+                    .filter { it.searchQuery.contains(q, ignoreCase = true) }
+                    .map { it.searchQuery }
+                    .distinct()
+                    .take(5)
+            }
+        }.stateIn(
+            scope = viewModelScope,
+            started = SharingStarted.WhileSubscribed(5000),
+            initialValue = emptyList()
+        )
+    }
     
     /**
      * 设置当前用户ID
@@ -71,20 +70,12 @@ class SearchViewModel(
     }
     
     /**
-     * 更新搜索查询
-     */
-    fun updateSearchQuery(query: String) {
-        _searchQuery.value = query
-    }
-    
-    /**
      * 执行搜索并添加到历史记录
      */
     fun performSearch(query: String): String {
         if (query.isBlank()) return ""
         
         val trimmedQuery = query.trim()
-        _searchQuery.value = trimmedQuery
         
         // 添加到搜索历史
         _currentUserId.value?.let { userId ->
