@@ -154,10 +154,11 @@ fun AppNavigation(
                     // 保存用户同意状态
                     CoroutineScope(Dispatchers.IO).launch {
                         agreementManager.acceptAllAgreements()
-                        Log.d(TAG_NAV, "用户已同意所有协议，跳转到启动页")
+                        Log.d(TAG_NAV, "用户已同意所有协议，直接跳转到主页")
                     }
                     
-                    navController.navigate(AppRoute.SPLASH) {
+                    // 直接跳转到主页，不再经过启动页的加载动画
+                    navController.navigate(AppRoute.HOME) {
                         popUpTo(AppRoute.AGREEMENT_CONSENT) { inclusive = true }
                         launchSingleTop = true
                     }

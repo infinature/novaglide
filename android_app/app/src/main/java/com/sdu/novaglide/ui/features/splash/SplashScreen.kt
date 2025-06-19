@@ -73,9 +73,9 @@ fun SplashScreen(
         label = "gradient_offset"
     )
     
-    // 3秒后检查协议状态并跳转
+    // 1秒后检查协议状态并跳转
     LaunchedEffect(Unit) {
-        delay(3000)
+        delay(1000)
         // 检查是否需要显示协议同意页面
         val shouldShowAgreement = agreementManager.shouldShowAgreementScreen()
         if (shouldShowAgreement) {
